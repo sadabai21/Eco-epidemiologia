@@ -209,6 +209,7 @@ grid.arrange(grobs = num_plots, ncol = 6, nrow = 5)
 
 ```
 #Calculamos Wilcox-test
+#Calculamos Wilcox-test
 ```{R Wilcox_test}
 # Inicializa el data frame vacío para los resultados
 results <- data.frame(Variable = character(), p_value = numeric(), stringsAsFactors = FALSE)
