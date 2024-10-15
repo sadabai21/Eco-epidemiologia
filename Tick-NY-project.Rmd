@@ -1,0 +1,402 @@
+---
+title: "NY ticks"
+author: "Iñaki Piñas"
+date: "2024-10-08"
+output: html_document
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r  load-data}
+rm(list=ls())
+setwd("C:/Users/ipsad/OneDrive/Escritorio/Eco-epidemiology")
+library(ggplot2)
+library(gridExtra)
+library(dplyr)
+library(knitr)
+library(kableExtra)
+library(FactoMineR)
+library(factoextra)
+library(corrplot)
+library(missMDA)
+library(cluster)
+library(vcd)
+library(logistf)
+library(MuMIn)
+library(Hmisc)
+library(scales)
+
+options(scipen = 999)
+
+datos<- read.csv("C:/Users/ipsad/OneDrive/Escritorio/Eco-epidemiology/SI_yard.csv", header=T, sep=";", dec=".")
+
+```
+## Pre-process data
+
+```{R  process}
+
+cat_vars<- c("House.ID", "Address", "Park", "Neighborhood", "Ticks","Lawn", "Log.brush", "Wood", "Vegetable", "Birdfeeder", "Chicken", "Fence", "Play", "Seating", "Wall", "Compost.bin", "Trashcan", "Food.shelter", "type_edge")
+#Convert cat_vars--> Factors
+datos[cat_vars] <- lapply(datos[cat_vars], as.factor)
+
+```
+#Análisis descriptivo:
+We visualize the categorical explanatory variables against the presence of ticks
+
+```{R Filter_data__Y}
+#Dentro de del nivel de infectados o no factorizamos estableciendo el 0 para no infectados y el 1 para infectados.
+datos$Ticks_label <- factor(datos$Ticks, levels = c("N", "Y"), labels = c("NO", "YES"))
+
+#Seleccionamos las variables categóricas que nos interesan:
+categorical_variables <- setdiff(cat_vars,c("House.ID", "Address","Park","Neighborhood", "Ticks", "type_edge" ))
+
+#Representamos los datos en función de si están o no infectados
+
+infection_bar_plot <-function(datos, categorical_variables, target_var) {
+  ggplot(datos, aes_string(x = target_var, fill = categorical_variables)) +
+    geom_bar(position = "fill") +
+    scale_y_continuous(labels = scales::percent_format()) +
+    labs(y = NULL, fill = categorical_variables, x = "Infestation") +
+    theme_minimal() +
+    theme(legend.position = "none",
+              plot.title = element_text(size = 8),
+              axis.title.x = element_text(size = 8),
+              axis.title.y = element_text(size = 8),
+              axis.text.x = element_text(size = 7),
+              axis.text.y = element_text(size = 7)
+            ) +
+    ggtitle(categorical_variables)
+}
+
+
+#Creamos una lista que recoja todas las gráficas de cada variable:
+cat_plots <-list()
+
+#Creamos el futloop:
+for (var in categorical_variables) {
+  cat_plots[[var]] <- infection_bar_plot(datos, var, "Ticks_label")
+}
+grid.arrange(grobs=cat_plots, ncol=5, nrow=4)
+```
+Calculamos las proporciones
+
+```{R Proportions}
+contingency_results <- data.frame(Variable = character(),
+                                  Category = character(),
+                                  No_Infestation = numeric(),
+                                  Yes_Infestation = numeric(),
+                                  stringsAsFactors = FALSE)
+for (var in categorical_variables) {
+  # Create a contingency table
+  contingency_table <- table(datos[[var]], datos$Ticks_label)
+  
+  # Calculate proportions
+  prop_table <- prop.table(contingency_table, margin = 2)
+  
+  # Store results with proportions
+  for (level in rownames(contingency_table)) {
+    contingency_results <- rbind(contingency_results, data.frame(
+      Variable = var,
+      Category = level,
+        No_Infestation = ifelse("NO" %in% colnames(prop_table), prop_table[level, "NO"], 0),  # Ajustar según etiquetas
+      Yes_Infestation = ifelse("YES" %in% colnames(prop_table), prop_table[level, "YES"], 0)   # Ajustar según etiquetas
+    )) 
+  }
+}
+```
+# Format and display the results as a table
+```{R Resultados}
+contingency_results %>%
+  mutate(No_Infestation = scales::percent(No_Infestation, accuracy = 0.1),
+         Yes_Infestation = scales::percent(Yes_Infestation, accuracy = 0.1)) %>%
+  kable("html", col.names = c("Variable", "Category", "No Infestation", "Yes Infestation"), align = "c") %>%
+  kable_styling(full_width = FALSE, position = "left", 
+                bootstrap_options = c("striped", "hover", "condensed")) %>%
+  column_spec(1, color = "black") %>%
+  column_spec(2, color = "black") %>%
+  column_spec(3, color = "black") %>%
+  column_spec(4, color = "black") %>%
+  row_spec(0, bold = TRUE, color = "black")
+```
+
+#Test Fisher test for each categorical variable
+ 
+```{R Fisher test}
+# Initialize an empty data frame to store results
+fisher_results <- data.frame(Variable = character(),
+                             p_value = numeric(),
+                             stringsAsFactors = FALSE)
+
+# Ejecutar el test exacto de Fisher para cada variable categórica
+for (var in categorical_variables) {
+  # Crear la tabla de contingencia
+  contingency_table <- table(datos[[var]], datos$Ticks_label)
+  
+  # Verificar si la tabla es de tamaño 2x2
+  if (nrow(contingency_table) == 2 && ncol(contingency_table) == 2) {
+    # Si es una tabla 2x2, realizar el test
+    test_result <- fisher.test(contingency_table)
+    
+    # Almacenar los resultados en el dataframe
+    fisher_results <- rbind(fisher_results, data.frame(Variable = var, p_value = test_result$p.value))
+  } 
+}
+
+# Agregar la significancia en función del valor p
+fisher_results <- fisher_results %>%
+  mutate(Significance = case_when(
+    p_value < 0.001 ~ "***",
+    p_value < 0.01 ~ "**",
+    p_value < 0.05 ~ "*",
+    TRUE ~ ""
+  ))
+
+# Formatear y mostrar los resultados como tabla
+fisher_results %>%
+  mutate(p_value = formatC(p_value, format = "f", digits = 4)) %>%
+  kable("html", col.names = c("Variable", "P-value", "Significance"), align = "c") %>%
+  kable_styling(full_width = FALSE, position = "left", 
+                bootstrap_options = c("striped", "hover", "condensed")) %>%
+  column_spec(1, color = "black") %>%
+  column_spec(2, color = "black") %>%
+  column_spec(3, bold = TRUE, color = "red") %>%
+  row_spec(which(fisher_results$Significance != ""), bold = TRUE) %>%
+  row_spec(0, bold = TRUE, color = "black") 
+```
+  
+#Hacemos lo mismo con las variables numéricas:
+
+```{R Var_numericas}
+
+# Function to create violin plots with jittered points
+create_violin_plot <- function(data, var_num, target_var) {
+ 
+   ggplot(data, aes_string(x = target_var, y = var_num, fill = target_var)) +
+    geom_violin(trim = FALSE) +
+    geom_jitter(width = 0.2, size = 0.6, alpha = 0.6) +
+    labs(y = var_num, fill = target_var, x = target_var) +
+    theme_minimal() +
+    theme(
+      legend.position = "none",
+      plot.title = element_text(size = 8),
+      axis.title.x = element_text(size = 8),
+      axis.title.y = element_text(size = 8),
+      axis.text.x = element_text(size = 7),
+      axis.text.y = element_text(size = 7)
+    ) +
+    ggtitle(var_num)
+}
+
+# Create list of numeric variables to visualize
+var_num<-c("Number.tubes", "I", "A", "H", "Number.tubes.peromyscus","Number.tubes.insectivore", "Number.tubes.vole", "Number.tubes.raccoon", "Number.tubes.chipmunk", "Woodchuck_VisR", "Deer_VisR","Raccon_VisR", "Cat_VisR","Possum_VisR", "Skunk_VisR", "Squirrel_VisR", "Acres","ApproxMOrnamentals", "Fencing.yard.", "ApproxMherbaceous","ApproxMnonherbaceous","ApproxMweeds","ApproxMevergreen","ApproxMgrass", "prop.grass", "prop.shrub", "prop.lowcan", "prop.highcan", "prop.bare", "prop.imperv")
+
+for (var in var_num) {
+  # Verifica la tabla de contingencia para cada variable numérica
+  print(var)  # Muestra el nombre de la variable actual
+  print(table(datos$Ticks_label, datos[[var]]))  # Muestra la tabla de contingencia
+}
+# Create a list to store the plots
+num_plots <- list()
+
+# Create plots for each numeric variable and store in the list
+for (var in var_num) {
+  num_plots[[var]] <- create_violin_plot(datos, var, "Ticks")
+}
+
+# Arrange the plots in a 4x4 grid
+grid.arrange(grobs = num_plots, ncol = 6, nrow = 5)
+
+```
+#Calculamos Wilcox-test
+```{R Wilcox_test}
+# Inicializa el data frame vacío para los resultados
+results <- data.frame(Variable = character(), p_value = numeric(), stringsAsFactors = FALSE)
+
+# Variable fencing_yard
+test_result_fencing.yard <- wilcox.test(datos$Fencing.yard. ~ datos$Ticks_label)
+results <- rbind(results, data.frame(Variable = "fencing_yard", p_value = test_result_fencing.yard$p.value))
+
+# Variable I
+test_result_I <- wilcox.test(datos$I ~ datos$Ticks_label)
+results <- rbind(results, data.frame(Variable = "I", p_value = test_result_I$p.value))
+
+# Variable H
+test_result_H <- wilcox.test(datos$H ~ datos$Ticks_label)
+results <- rbind(results, data.frame(Variable = "H", p_value = test_result_H$p.value))
+
+# Variable A
+test_result_A <- wilcox.test(datos$A ~ datos$Ticks_label)
+results <- rbind(results, data.frame(Variable = "A", p_value = test_result_A$p.value))
+
+# Variable Number.tubes.with.hair
+test_result_Number.tubes.with.hair <- wilcox.test(datos$Number.tubes.with.hair ~ datos$Ticks_label)
+results <- rbind(results, data.frame(Variable = "Number.tubes.with.hair", p_value = test_result_Number.tubes.with.hair$p.value))
+
+# Variable Number.tubes
+test_result_Number.tubes <- wilcox.test(datos$Number.tubes  ~ datos$Ticks_label)
+results <- rbind(results, data.frame(Variable = "Number.tubes", p_value = test_result_Number.tubes$p.value))
+
+# Variable Number.tubes.peromyscus
+test_result_Number.tubes.peromyscus <- wilcox.test(datos$Number.tubes.peromyscus ~ datos$Ticks_label)
+results <- rbind(results, data.frame(Variable = "Number.tubes.peromyscus", p_value = test_result_Number.tubes.peromyscus$p.value))
+
+# Variable Number.tubes.insectivore
+test_result_Number.tubes.insectivore <- wilcox.test(datos$Number.tubes.insectivore ~ datos$Ticks_label)
+results <- rbind(results, data.frame(Variable = "Number.tubes.insectivore", p_value = test_result_Number.tubes.insectivore$p.value))
+
+# Variable Number.tubes.vole
+test_result_Number.tubes.vole <- wilcox.test(datos$Number.tubes.vole ~ datos$Ticks_label)
+results <- rbind(results, data.frame(Variable = "Number.tubes.vole", p_value = test_result_Number.tubes.vole$p.value))
+
+# Variable Number.tubes.raccoon
+test_result_Number.tubes.raccoon <- wilcox.test(datos$Number.tubes.raccoon ~ datos$Ticks_label)
+results <- rbind(results, data.frame(Variable = "Number.tubes.raccoon", p_value = test_result_Number.tubes.raccoon$p.value))
+
+# Variable Number.tubes.chipmunk
+test_result_Number.tubes.chipmunk <- wilcox.test(datos$Number.tubes.chipmunk ~ datos$Ticks_label)
+results <- rbind(results, data.frame(Variable = "Number.tubes.chipmunk", p_value = test_result_Number.tubes.chipmunk$p.value))
+
+# Variable Woodchuck_VisR
+test_result_Woodchuck_VisR <- wilcox.test(datos$Woodchuck_VisR ~ datos$Ticks_label)
+results <- rbind(results, data.frame(Variable = "Woodchuck_VisR", p_value = test_result_Woodchuck_VisR$p.value))
+
+# Variable Deer_VisR
+test_result_Deer_VisR <- wilcox.test(datos$Deer_VisR ~ datos$Ticks_label)
+results <- rbind(results, data.frame(Variable = "Deer_VisR", p_value = test_result_Deer_VisR$p.value))
+
+# Variable Raccon_VisR
+test_result_Raccon_VisR <- wilcox.test(datos$Raccon_VisR ~ datos$Ticks_label)
+results <- rbind(results, data.frame(Variable = "Raccon_VisR", p_value = test_result_Raccon_VisR$p.value))
+
+# Variable Cat_VisR
+test_result_Cat_VisR <- wilcox.test(datos$Cat_VisR ~ datos$Ticks_label)
+results <- rbind(results, data.frame(Variable = "Cat_VisR", p_value = test_result_Cat_VisR$p.value))
+
+# Variable Possum_VisR
+test_result_Possum_VisR <- wilcox.test(datos$Possum_VisR ~ datos$Ticks_label)
+results <- rbind(results, data.frame(Variable = "Possum_VisR", p_value = test_result_Possum_VisR$p.value))
+
+
+# Variable Skunk_VisR
+test_result_Skunk_VisR <- wilcox.test(datos$Skunk_VisR ~ datos$Ticks_label)
+results <- rbind(results, data.frame(Variable = "Skunk_VisR", p_value = test_result_Skunk_VisR$p.value))
+
+
+# Variable Squirrel_VisR
+test_result_Squirrel_VisR <- wilcox.test(datos$Squirrel_VisR ~ datos$Ticks_label)
+results <- rbind(results, data.frame(Variable = "Squirrel_VisR", p_value = test_result_Squirrel_VisR$p.value))
+
+
+
+# Variable ApproxMOrnamentals
+test_result_ApproxMOrnamentals <- wilcox.test(datos$ApproxMOrnamentals ~ datos$Ticks_label)
+results <- rbind(results, data.frame(Variable = "ApproxMOrnamentals", p_value = test_result_ApproxMOrnamentals$p.value))
+
+# Variable ApproxMherbaceous
+test_result_ApproxMherbaceous <- wilcox.test(datos$ApproxMherbaceous ~ datos$Ticks_label)
+results <- rbind(results, data.frame(Variable = "ApproxMherbaceous", p_value = test_result_ApproxMherbaceous$p.value))
+
+# Variable ApproxMnonherbceous
+test_result_ApproxMnonherbaceous <- wilcox.test(datos$ApproxMnonherbaceous ~ datos$Ticks_label)
+results <- rbind(results, data.frame(Variable = "ApproxMnonherbaceous", p_value = test_result_ApproxMnonherbaceous$p.value))
+
+# Variable ApproxMweeds
+test_result_ApproxMweeds <- wilcox.test(datos$ApproxMweeds ~ datos$Ticks_label)
+results <- rbind(results, data.frame(Variable = "ApproxMweeds", p_value = test_result_ApproxMweeds$p.value))
+
+# Variable ApproxMgrass
+test_result_ApproxMgrass <- wilcox.test(datos$ApproxMgrass ~ datos$Ticks_label)
+results <- rbind(results, data.frame(Variable = "ApproxMgrass", p_value = test_result_ApproxMweeds$p.value))
+
+
+# Variable prop.shrub
+test_result_prop.shrub <- wilcox.test(datos$prop.shrub ~ datos$Ticks_label)
+results <- rbind(results, data.frame(Variable = "prop.shrub", p_value = test_result_prop.shrub$p.value))
+
+# Variable prop.lowcan
+test_result_prop.lowcan <- wilcox.test(datos$prop.lowcan ~ datos$Ticks_label)
+results <- rbind(results, data.frame(Variable = "prop.lowcan", p_value = test_result_prop.lowcan$p.value))
+
+# Variable prop.highcan
+test_result_prop.highcan <- wilcox.test(datos$prop.highcan ~ datos$Ticks_label)
+results <- rbind(results, data.frame(Variable = "prop.highcan", p_value = test_result_prop.highcan$p.value))
+
+# Variable prop.bare
+test_result_prop.bare <- wilcox.test(datos$prop.bare ~ datos$Ticks_label)
+results <- rbind(results, data.frame(Variable = "prop.bare", p_value = test_result_prop.bare$p.value))
+
+# Variable prop.imperv
+test_result_prop.imperv <- wilcox.test(datos$prop.imperv ~ datos$Ticks_label)
+results <- rbind(results, data.frame(Variable = "prop.imperv", p_value = test_result_prop.imperv$p.value))
+
+
+# NO ENTIENDO EL ERROR
+
+# Variable type_edge
+test_result_type_edge <- wilcox.test(datos$type_edge ~ datos$Ticks_label)
+results <- rbind(results, data.frame(Variable = "type_edge", p_value = test_result_type_edge$p.value))
+
+# Variable prop.grass
+test_result_prop.grass <- wilcox.test(datos$prop.grass ~ datos$Ticks_label)
+results <- rbind(results, data.frame(Variable = "prop.grass", p_value = test_result_prop.grass$p.value))
+
+# Variable prop.shrub
+test_result_prop.shrub <- wilcox.test(datos$prop.shrub ~ datos$Ticks_label)
+results <- rbind(results, data.frame(Variable = "prop.shrub", p_value = test_result_prop.shrub$p.value))
+
+# Variable prop.lowcan
+test_result_prop.lowcan <- wilcox.test(datos$prop.lowcan ~ datos$Ticks_label)
+results <- rbind(results, data.frame(Variable = "prop.lowcan", p_value = test_result_prop.lowcan$p.value))
+
+# Variable prop.highcan
+test_result_prop.highcan <- wilcox.test(datos$prop.highcan ~ datos$Ticks_label)
+results <- rbind(results, data.frame(Variable = "prop.highcan", p_value = test_result_prop.highcan$p.value))
+
+# Variable prop.bare
+test_result_prop.bare <- wilcox.test(datos$prop.bare ~ datos$Ticks_label)
+results <- rbind(results, data.frame(Variable = "prop.bare", p_value = test_result_prop.bare$p.value))
+
+# Variable prop.imperv
+test_result_prop.imperv <- wilcox.test(datos$prop.imperv ~ datos$Ticks_label)
+results <- rbind(results, data.frame(Variable = "prop.imperv", p_value = test_result_prop.imperv$p.value))
+
+# Variable Acres
+test_result_Acres <- wilcox.test(datos$Acres ~ datos$Ticks_label)
+results <- rbind(results, data.frame(Variable = "Acres", p_value = test_result_Acres$p.value))
+
+----------------------------------------------------------------------------------------------------------------------
+# Procesa los resultados para incluir significancia
+results <- results %>%
+  mutate(Significance = case_when(
+    p_value < 0.001 ~ "***",
+    p_value < 0.01 ~ "**",
+    p_value < 0.05 ~ "*",
+    TRUE ~ ""
+  ))
+
+# Formatea los p-valores a cuatro decimales
+results$p_value <- formatC(results$p_value, format = "f", digits = 4)
+
+# Formatea la tabla para un documento Word
+results %>%
+  kable("html", col.names = c("Variable", "P-value", "Significance"), align = "c") %>%
+  kable_styling(full_width = FALSE, position = "left", bootstrap_options = c("striped", "hover", "condensed")) %>%
+  column_spec(1, color = "black") %>%
+  column_spec(2, color = "black") %>%
+  column_spec(3, bold = TRUE, color = "red") %>%
+  row_spec(which(results$Significance != ""), bold = TRUE) %>%
+  row_spec(0, bold = TRUE, color = "black")
+
+
+```
+
+
+
+
+
+
+
+
+
+
