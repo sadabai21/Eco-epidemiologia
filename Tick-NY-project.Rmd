@@ -26,10 +26,11 @@ library(logistf)
 library(MuMIn)
 library(Hmisc)
 library(scales)
+library(tidyverse)
 
 options(scipen = 999)
 
-datos<- read.csv("C:/Users/ipsad/OneDrive/Escritorio/Eco-epidemiology/SI_yard.csv", header=T, sep=";", dec=".")
+datos<- read.csv("C:/Users/ipsad/OneDrive/Escritorio/Eco-epidemiology/SI_yard.csv", header=T, sep=";", dec=",")
 
 ```
 ## Pre-process data
@@ -49,11 +50,12 @@ We visualize the categorical explanatory variables against the presence of ticks
 datos$Ticks_label <- factor(datos$Ticks, levels = c("N", "Y"), labels = c("NO", "YES"))
 
 #Seleccionamos las variables categóricas que nos interesan:
-categorical_variables <- setdiff(cat_vars,c("House.ID", "Address","Park","Neighborhood", "Ticks", "type_edge" ))
+categorical_variables <- setdiff(cat_vars,c("House.ID", "Address","Park","Neighborhood", "Ticks"))
 
 #Representamos los datos en función de si están o no infectados
 
 infection_bar_plot <-function(datos, categorical_variables, target_var) {
+  datos <- datos[!is.na(datos[[categorical_variables]]), ]
   ggplot(datos, aes_string(x = target_var, fill = categorical_variables)) +
     geom_bar(position = "fill") +
     scale_y_continuous(labels = scales::percent_format()) +
@@ -167,7 +169,7 @@ fisher_results %>%
   
 #Hacemos lo mismo con las variables numéricas:
 
-```{R Var_numericas}
+```{R Var_numericas 1}
 
 # Function to create violin plots with jittered points
 create_violin_plot <- function(data, var_num, target_var) {
@@ -189,23 +191,42 @@ create_violin_plot <- function(data, var_num, target_var) {
 }
 
 # Create list of numeric variables to visualize
-var_num<-c("Number.tubes", "I", "A", "H", "Number.tubes.peromyscus","Number.tubes.insectivore", "Number.tubes.vole", "Number.tubes.raccoon", "Number.tubes.chipmunk", "Woodchuck_VisR", "Deer_VisR","Raccon_VisR", "Cat_VisR","Possum_VisR", "Skunk_VisR", "Squirrel_VisR", "Acres","ApproxMOrnamentals", "Fencing.yard.", "ApproxMherbaceous","ApproxMnonherbaceous","ApproxMweeds","ApproxMevergreen","ApproxMgrass", "prop.grass", "prop.shrub", "prop.lowcan", "prop.highcan", "prop.bare", "prop.imperv")
+var_num1<-c("Number.tubes", "I", "A", "H", "Number.tubes.peromyscus","Number.tubes.insectivore", "Number.tubes.vole", "Number.tubes.raccoon", "Number.tubes.chipmunk", "Woodchuck_VisR", "Deer_VisR","Raccon_VisR", "Cat_VisR","Possum_VisR", "Skunk_VisR", "Squirrel_VisR", "Acres")
 
-for (var in var_num) {
+for (var in var_num1) {
   # Verifica la tabla de contingencia para cada variable numérica
   print(var)  # Muestra el nombre de la variable actual
   print(table(datos$Ticks_label, datos[[var]]))  # Muestra la tabla de contingencia
 }
 # Create a list to store the plots
-num_plots <- list()
+num_plots1 <- list()
 
 # Create plots for each numeric variable and store in the list
-for (var in var_num) {
-  num_plots[[var]] <- create_violin_plot(datos, var, "Ticks")
+for (var in var_num1) {
+  num_plots1[[var]] <- create_violin_plot(datos, var, "Ticks")
 }
 
 # Arrange the plots in a 4x4 grid
-grid.arrange(grobs = num_plots, ncol = 6, nrow = 5)
+grid.arrange(grobs = num_plots1, ncol = 6, nrow = 5)
+
+```
+
+```{R var_numericas 2}
+
+var_num2<-c("ApproxMOrnamentals", "Fencing.yard.", "ApproxMherbaceous","ApproxMnonherbaceous","ApproxMweeds","ApproxMevergreen","ApproxMgrass", "prop.grass", "prop.shrub", "prop.lowcan", "prop.highcan", "prop.bare", "prop.imperv")
+
+for (var in var_num2) {
+  # Verifica la tabla de contingencia para cada variable numérica
+  print(var)  # Muestra el nombre de la variable actual
+  print(table(datos$Ticks_label, datos[[var]]))  # Muestra la tabla de contingencia
+}
+num_plots2 <- list()
+for (var in var_num2) {
+  num_plots2[[var]] <- create_violin_plot(datos, var, "Ticks")
+}
+
+# Arrange the plots in a 4x4 grid
+grid.arrange(grobs = num_plots2, ncol = 6, nrow = 5)
 
 ```
 #Calculamos Wilcox-test
@@ -332,12 +353,6 @@ test_result_prop.imperv <- wilcox.test(datos$prop.imperv ~ datos$Ticks_label)
 results <- rbind(results, data.frame(Variable = "prop.imperv", p_value = test_result_prop.imperv$p.value))
 
 
-# NO ENTIENDO EL ERROR
-
-# Variable type_edge
-test_result_type_edge <- wilcox.test(datos$type_edge ~ datos$Ticks_label)
-results <- rbind(results, data.frame(Variable = "type_edge", p_value = test_result_type_edge$p.value))
-
 # Variable prop.grass
 test_result_prop.grass <- wilcox.test(datos$prop.grass ~ datos$Ticks_label)
 results <- rbind(results, data.frame(Variable = "prop.grass", p_value = test_result_prop.grass$p.value))
@@ -366,7 +381,6 @@ results <- rbind(results, data.frame(Variable = "prop.imperv", p_value = test_re
 test_result_Acres <- wilcox.test(datos$Acres ~ datos$Ticks_label)
 results <- rbind(results, data.frame(Variable = "Acres", p_value = test_result_Acres$p.value))
 
-----------------------------------------------------------------------------------------------------------------------
 # Procesa los resultados para incluir significancia
 results <- results %>%
   mutate(Significance = case_when(
@@ -381,6 +395,164 @@ results$p_value <- formatC(results$p_value, format = "f", digits = 4)
 
 # Formatea la tabla para un documento Word
 results %>%
+  kable("html", col.names = c("Variable", "p_value", "Significance"), align = "c") %>%
+  kable_styling(full_width = FALSE, position = "left", bootstrap_options = c("striped", "hover", "condensed")) %>%
+  column_spec(1, color = "black") %>%
+  column_spec(2, color = "black") %>%
+  column_spec(3, bold = TRUE, color = "red") %>%
+  row_spec(which(results$Significance != ""), bold = TRUE) %>%
+  row_spec(0, bold = TRUE, color = "black")
+```
+```{R Relacionando variables}
+#Variable Deer con Fence:
+
+  # Test de correlación de Krustal entre Deer_VisR y Fencing.yard.
+
+kruskal.test(datos$Fencing.yard., datos$Deer_VisR)
+      #p-valor=0,446
+
+  # Test de correlación Spearman entre las variables animales y ApproxM...
+
+# Cargar librerías necesarias
+library(tidyverse)
+
+# Seleccionar solo las columnas numéricas que te interesan
+correlation_tab <- datos %>%
+  select(ApproxMOrnamentals, ApproxMherbaceous, ApproxMnonherbaceous, ApproxMweeds, 
+         ApproxMevergreen, ApproxMgrass, Deer_VisR, Raccon_VisR, Woodchuck_VisR, 
+         Cat_VisR, Possum_VisR, Skunk_VisR, Squirrel_VisR)
+
+# Calcular la matriz de correlación
+correlation_matrix <- cor(correlation_tab, use = "complete.obs", method = "spearman")
+
+# Imprimir la tabla de correlación
+correlation_matrix
+
+
+# Cargar librerías necesarias
+library(tidyverse)
+
+# Seleccionar las variables numéricas de interés
+correlation_tab <- datos 
+  select(ApproxMOrnamentals, ApproxMherbaceous, ApproxMnonherbaceous, ApproxMweeds, 
+         ApproxMevergreen, ApproxMgrass, Deer_VisR, Raccon_VisR, Woodchuck_VisR, 
+         Cat_VisR, Possum_VisR, Skunk_VisR, Squirrel_VisR)
+
+# Eliminar filas con NA
+correlation_tab <- na.omit(correlation_tab)
+
+# Verificar que no haya nombres faltantes en las columnas
+if (any(is.na(names(correlation_tab)))) {
+  stop("Hay nombres faltantes en las columnas de los datos.")
+}
+
+# Función para calcular correlación y p-valor con exact = FALSE
+cor_with_p <- function(x, y) {
+  cor_test <- cor.test(x, y, method = "spearman", exact = FALSE)
+  return(c(correlation = cor_test$estimate, p_value = cor_test$p.value))
+}
+
+# Crear una tabla de resultados vacía
+results <- data.frame(matrix(ncol = 4, nrow = 0))
+colnames(results) <- c("Variable_1", "Variable_2", "Correlation", "p_value")
+
+# Iterar sobre todas las combinaciones de variables para calcular correlaciones y p-valores
+for (i in 1:(ncol(correlation_tab) - 1)) {
+  for (j in (i + 1):ncol(correlation_tab)) {
+    # Verificar si ambos nombres de variables son válidos
+    if (!is.na(names(correlation_tab)[i]) && !is.na(names(correlation_tab)[j])) {
+      result <- cor_with_p(correlation_tab[[i]], correlation_tab[[j]])
+      # Evitar problemas con los nombres
+      results <- rbind(results, data.frame(Variable_1 = names(correlation_tab)[i],
+                                           Variable_2 = names(correlation_tab)[j],
+                                           Correlation = result["correlation"],
+                                           p_value = result["p_value"], 
+                                           check.names = FALSE))
+    } else {
+      warning(paste("Nombres faltantes para las variables en la combinación:", 
+                    names(correlation_tab)[i], "y", names(correlation_tab)[j]))
+    }
+  }
+}
+
+# Imprimir la tabla de resultados
+print(results)
+
+```
+
+``` {R  Variable Approx_Log}
+
+#Variable ApproxM... con Log. brush/ Food shelter/Lawn/ Vegetable/ Birdfeeder/ Trashcan/Compost.bin/Wood
+
+Numeric_plants<- c("ApproxMOrnamentals", "ApproxMherbaceous", "ApproxMnonherbaceous", "ApproxMweeds", "ApproxMevergreen", "ApproxMgrass")
+
+# Initialize an empty data frame to store results
+results <- data.frame(Variable = character(),
+                      p_value = numeric(),
+                      stringsAsFactors = FALSE)
+```
+#Calculamos la correlación PLANTAS-LOG BRUSH
+``` {R Log_brush}
+
+#Perform Mann-Whitney test for each numeric variable 
+for (var in Numeric_plants) {
+  test_result <- wilcox.test(datos[[var]] ~ datos$Log.brush, data = datos)
+  results <- rbind(results, data.frame(Variable = var, p_value = test_result$p.value))
+}
+
+# Display the results
+results <- results %>%
+  mutate(Significance = case_when(
+    p_value < 0.001 ~ "***",
+    p_value < 0.01 ~ "**",
+    p_value < 0.05 ~ "*",
+    TRUE ~ ""
+  ))
+
+# Format p-values to four decimal places
+results$p_value <- formatC(results$p_value, format = "f", digits = 4)
+
+# Format the table for Word document
+results %>%
+  kable("html", col.names = c("Variable", "P-value", "Significance"), align = "c") %>%
+  kable_styling(full_width = FALSE, position = "left", bootstrap_options = c("striped", "hover", "condensed")) %>%
+  column_spec(1, color = "black") %>%
+  column_spec(2, color = "black") %>%
+  column_spec(3, bold = TRUE, color = "red") %>%
+  row_spec(which(results$Significance != ""), bold = TRUE) %>%
+  row_spec(0, bold = TRUE, color = "black")
+``` 
+#Calculamos la correlación PLANTAS-FOOD SHELTER
+  
+``` {R FOOD SHELTER} 
+                 
+
+Numeric_plants<- c("ApproxMOrnamentals", "ApproxMherbaceous", "ApproxMnonherbaceous", "ApproxMweeds", "ApproxMevergreen", "ApproxMgrass")
+
+# Initialize an empty data frame to store results
+results <- data.frame(Variable = character(),
+                      p_value = numeric(),
+                      stringsAsFactors = FALSE)
+# Perform Mann-Whitney test for each numeric variable 
+for (var in Numeric_plants) {
+  test_result <- wilcox.test(datos[[var]] ~ datos$Food.shelter, data = datos)
+  results <- rbind(results, data.frame(Variable = var, p_value = test_result$p.value))
+}
+
+# Display the results
+results <- results %>%
+  mutate(Significance = case_when(
+    p_value < 0.001 ~ "***",
+    p_value < 0.01 ~ "**",
+    p_value < 0.05 ~ "*",
+    TRUE ~ ""
+  ))
+
+# Format p-values to four decimal places
+results$p_value <- formatC(results$p_value, format = "f", digits = 4)
+
+# Format the table for Word document
+results %>%
   kable("html", col.names = c("Variable", "P-value", "Significance"), align = "c") %>%
   kable_styling(full_width = FALSE, position = "left", bootstrap_options = c("striped", "hover", "condensed")) %>%
   column_spec(1, color = "black") %>%
@@ -389,8 +561,348 @@ results %>%
   row_spec(which(results$Significance != ""), bold = TRUE) %>%
   row_spec(0, bold = TRUE, color = "black")
 
+```
+#Calculamos la correlación PLANTAS-LAWN
+``` {R Lawn} 
+                 
+
+Numeric_plants<- c("ApproxMOrnamentals", "ApproxMherbaceous", "ApproxMnonherbaceous", "ApproxMweeds", "ApproxMevergreen", "ApproxMgrass")
+
+# Initialize an empty data frame to store results
+results <- data.frame(Variable = character(),
+                      p_value = numeric(),
+                      stringsAsFactors = FALSE)
+# Perform Mann-Whitney test for each numeric variable 
+for (var in Numeric_plants) {
+  test_result <- wilcox.test(datos[[var]] ~ datos$Lawn, data = datos)
+  results <- rbind(results, data.frame(Variable = var, p_value = test_result$p.value))
+}
+
+# Display the results
+results <- results %>%
+  mutate(Significance = case_when(
+    p_value < 0.001 ~ "***",
+    p_value < 0.01 ~ "**",
+    p_value < 0.05 ~ "*",
+    TRUE ~ ""
+  ))
+
+# Format p-values to four decimal places
+results$p_value <- formatC(results$p_value, format = "f", digits = 4)
+
+# Format the table for Word document
+results %>%
+  kable("html", col.names = c("Variable", "P-value", "Significance"), align = "c") %>%
+  kable_styling(full_width = FALSE, position = "left", bootstrap_options = c("striped", "hover", "condensed")) %>%
+  column_spec(1, color = "black") %>%
+  column_spec(2, color = "black") %>%
+  column_spec(3, bold = TRUE, color = "red") %>%
+  row_spec(which(results$Significance != ""), bold = TRUE) %>%
+  row_spec(0, bold = TRUE, color = "black")
 
 ```
+#Calculamos la correlación PLANTAS-BIRDFEEDER
+``` {R BIRDFEEDER} 
+
+Numeric_plants<- c("ApproxMOrnamentals", "ApproxMherbaceous", "ApproxMnonherbaceous", "ApproxMweeds", "ApproxMevergreen", "ApproxMgrass")
+
+# Initialize an empty data frame to store results
+results <- data.frame(Variable = character(),
+                      p_value = numeric(),
+                      stringsAsFactors = FALSE)                 
+# Perform Mann-Whitney test for each numeric variable 
+for (var in Numeric_plants) {
+  test_result <- wilcox.test(datos[[var]] ~ datos$Birdfeeder, data = datos)
+  results <- rbind(results, data.frame(Variable = var, p_value = test_result$p.value))
+}
+
+# Display the results
+results <- results %>%
+  mutate(Significance = case_when(
+    p_value < 0.001 ~ "***",
+    p_value < 0.01 ~ "**",
+    p_value < 0.05 ~ "*",
+    TRUE ~ ""
+  ))
+
+# Format p-values to four decimal places
+results$p_value <- formatC(results$p_value, format = "f", digits = 4)
+
+# Format the table for Word document
+results %>%
+  kable("html", col.names = c("Variable", "P-value", "Significance"), align = "c") %>%
+  kable_styling(full_width = FALSE, position = "left", bootstrap_options = c("striped", "hover", "condensed")) %>%
+  column_spec(1, color = "black") %>%
+  column_spec(2, color = "black") %>%
+  column_spec(3, bold = TRUE, color = "red") %>%
+  row_spec(which(results$Significance != ""), bold = TRUE) %>%
+  row_spec(0, bold = TRUE, color = "black")
+
+```
+#Calculamos la correlación PLANTAS-VEGETABLE
+``` {R Vegetable} 
+                 
+
+Numeric_plants<- c("ApproxMOrnamentals", "ApproxMherbaceous", "ApproxMnonherbaceous", "ApproxMweeds", "ApproxMevergreen", "ApproxMgrass")
+
+# Initialize an empty data frame to store results
+results <- data.frame(Variable = character(),
+                      p_value = numeric(),
+                      stringsAsFactors = FALSE)
+# Perform Mann-Whitney test for each numeric variable 
+for (var in Numeric_plants) {
+  test_result <- wilcox.test(datos[[var]] ~ datos$Vegetable, data = datos)
+  results <- rbind(results, data.frame(Variable = var, p_value = test_result$p.value))
+}
+
+# Display the results
+results <- results %>%
+  mutate(Significance = case_when(
+    p_value < 0.001 ~ "***",
+    p_value < 0.01 ~ "**",
+    p_value < 0.05 ~ "*",
+    TRUE ~ ""
+  ))
+
+# Format p-values to four decimal places
+results$p_value <- formatC(results$p_value, format = "f", digits = 4)
+
+# Format the table for Word document
+results %>%
+  kable("html", col.names = c("Variable", "P-value", "Significance"), align = "c") %>%
+  kable_styling(full_width = FALSE, position = "left", bootstrap_options = c("striped", "hover", "condensed")) %>%
+  column_spec(1, color = "black") %>%
+  column_spec(2, color = "black") %>%
+  column_spec(3, bold = TRUE, color = "red") %>%
+  row_spec(which(results$Significance != ""), bold = TRUE) %>%
+  row_spec(0, bold = TRUE, color = "black")
+
+```
+#Calculamos la correlación PLANTAS-TRASHCAN
+``` {R TRASHCAN} 
+                 
+
+Numeric_plants<- c("ApproxMOrnamentals", "ApproxMherbaceous", "ApproxMnonherbaceous", "ApproxMweeds", "ApproxMevergreen", "ApproxMgrass")
+
+# Initialize an empty data frame to store results
+results <- data.frame(Variable = character(),
+                      p_value = numeric(),
+                      stringsAsFactors = FALSE)
+# Perform Mann-Whitney test for each numeric variable 
+for (var in Numeric_plants) {
+  test_result <- wilcox.test(datos[[var]] ~ datos$Trashcan, data = datos)
+  results <- rbind(results, data.frame(Variable = var, p_value = test_result$p.value))
+}
+
+# Display the results
+results <- results %>%
+  mutate(Significance = case_when(
+    p_value < 0.001 ~ "***",
+    p_value < 0.01 ~ "**",
+    p_value < 0.05 ~ "*",
+    TRUE ~ ""
+  ))
+
+# Format p-values to four decimal places
+results$p_value <- formatC(results$p_value, format = "f", digits = 4)
+
+# Format the table for Word document
+results %>%
+  kable("html", col.names = c("Variable", "P-value", "Significance"), align = "c") %>%
+  kable_styling(full_width = FALSE, position = "left", bootstrap_options = c("striped", "hover", "condensed")) %>%
+  column_spec(1, color = "black") %>%
+  column_spec(2, color = "black") %>%
+  column_spec(3, bold = TRUE, color = "red") %>%
+  row_spec(which(results$Significance != ""), bold = TRUE) %>%
+  row_spec(0, bold = TRUE, color = "black")
+
+```
+#Calculamos la correlación PLANTAS-COMPOST.BIN
+``` {R COMPOST BIN} 
+                 
+
+Numeric_plants<- c("ApproxMOrnamentals", "ApproxMherbaceous", "ApproxMnonherbaceous", "ApproxMweeds", "ApproxMevergreen", "ApproxMgrass")
+
+# Initialize an empty data frame to store results
+results <- data.frame(Variable = character(),
+                      p_value = numeric(),
+                      stringsAsFactors = FALSE)
+# Perform Mann-Whitney test for each numeric variable 
+for (var in Numeric_plants) {
+  test_result <- wilcox.test(datos[[var]] ~ datos$Compost.bin, data = datos)
+  results <- rbind(results, data.frame(Variable = var, p_value = test_result$p.value))
+}
+
+# Display the results
+results <- results %>%
+  mutate(Significance = case_when(
+    p_value < 0.001 ~ "***",
+    p_value < 0.01 ~ "**",
+    p_value < 0.05 ~ "*",
+    TRUE ~ ""
+  ))
+
+# Format p-values to four decimal places
+results$p_value <- formatC(results$p_value, format = "f", digits = 4)
+
+# Format the table for Word document
+results %>%
+  kable("html", col.names = c("Variable", "P-value", "Significance"), align = "c") %>%
+  kable_styling(full_width = FALSE, position = "left", bootstrap_options = c("striped", "hover", "condensed")) %>%
+  column_spec(1, color = "black") %>%
+  column_spec(2, color = "black") %>%
+  column_spec(3, bold = TRUE, color = "red") %>%
+  row_spec(which(results$Significance != ""), bold = TRUE) %>%
+  row_spec(0, bold = TRUE, color = "black")
+
+```
+#Calculamos la correlación PLANTAS-WOOD
+``` {R WOOD} 
+
+Numeric_plants<- c("ApproxMOrnamentals", "ApproxMherbaceous", "ApproxMnonherbaceous", "ApproxMweeds", "ApproxMevergreen", "ApproxMgrass")
+
+# Initialize an empty data frame to store results
+results <- data.frame(Variable = character(),
+                      p_value = numeric(),
+                      stringsAsFactors = FALSE)
+# Perform Mann-Whitney test for each numeric variable 
+for (var in Numeric_plants) {
+  test_result <- wilcox.test(datos[[var]] ~ datos$Wood, data = datos)
+  results <- rbind(results, data.frame(Variable = var, p_value = test_result$p.value))
+}
+
+# Display the results
+results <- results %>%
+  mutate(Significance = case_when(
+    p_value < 0.001 ~ "***",
+    p_value < 0.01 ~ "**",
+    p_value < 0.05 ~ "*",
+    TRUE ~ ""
+  ))
+
+# Format p-values to four decimal places
+results$p_value <- formatC(results$p_value, format = "f", digits = 4)
+
+# Format the table for Word document
+results %>%
+  kable("html", col.names = c("Variable", "P-value", "Significance"), align = "c") %>%
+  kable_styling(full_width = FALSE, position = "left", bootstrap_options = c("striped", "hover", "condensed")) %>%
+  column_spec(1, color = "black") %>%
+  column_spec(2, color = "black") %>%
+  column_spec(3, bold = TRUE, color = "red") %>%
+  row_spec(which(results$Significance != ""), bold = TRUE) %>%
+  row_spec(0, bold = TRUE, color = "black")
+
+```
+
+#Variable ApproxM... con Prop. highcan/ Prop.bare/Prop.imperv/Prop.grass/Prop.shrub/Prop.lowcan
+
+```{R props}
+
+# Definir las variables de interés
+approx_vars <- c("ApproxMOrnamentals", "ApproxMherbaceous", "ApproxMnonherbaceous",
+                 "ApproxMweeds", "ApproxMevergreen", "ApproxMgrass")
+
+prop_vars <- c("prop.shrub", "prop.lowcan", "prop.highcan", "prop.bare", "prop.imperv")
+
+# Crear una tabla de resultados vacía
+results <- data.frame(Variable_1 = character(),
+                      Variable_2 = character(),
+                      Correlation = numeric(),
+                      p_value = numeric(),
+                      stringsAsFactors = FALSE)
+
+# Función para calcular correlación y p-valor
+cor_with_p <- function(x, y) {
+  cor_test <- cor.test(x, y, method = "spearman", exact = FALSE)
+  return(c(correlation = cor_test$estimate, p_value = cor_test$p.value))
+}
+
+# Iterar sobre todas las combinaciones de variables
+for (approx_var in approx_vars) {
+  for (prop_var in prop_vars) {
+    # Extraer las columnas relevantes y eliminar NAs
+    approx_data <- na.omit(correlation_tab[[approx_var]])
+    prop_data <- na.omit(correlation_tab[[prop_var]])
+    
+    # Asegurarse de que ambas variables tienen la misma longitud después de eliminar NAs
+    valid_indices <- complete.cases(approx_data, prop_data)
+    
+    if (sum(valid_indices) > 1) {  # Debe haber más de un par para calcular correlación
+      result <- cor_with_p(approx_data[valid_indices], prop_data[valid_indices])
+      
+      # Agregar resultados a la tabla
+      results <- rbind(results, data.frame(
+        Variable_1 = approx_var,
+        Variable_2 = prop_var,
+        Correlation = result["correlation"],
+        p_value = result["p_value"],
+        stringsAsFactors = FALSE  # Asegurarse de que los nombres de las variables no se conviertan en factores
+      ))
+    }
+  }
+}
+
+# Imprimir la tabla de resultados
+print(results)
+
+# Opcional: formatear los p-valores
+results$p_value <- formatC(results$p_value, format = "f", digits = 4)
+``` 
+
+
+
+
+#Variable Nº tubes con animales
+```{R tubes}
+# Definir las variables de interés
+approx_vars <- c("Deer_VisR", "Raccon_VisR", "Woodchuck_VisR", 
+         "Cat_VisR", "Possum_VisR", "Skunk_VisR", "Squirrel_VisR", "ApproxMherbaceous", 
+                 "ApproxMweeds", "ApproxMevergreen", "ApproxMgrass")
+
+prop_vars <- c("Number.tubes","Number.tubes.with.hair", "Number.tubes.peromyscus",	"Number.tubes.insectivore","Number.tubes.vole", "Number.tubes.raccoon", "Number.tubes.chipmunk")
+
+# Crear una tabla de resultados vacía
+results <- data.frame(Variable_1 = character(),
+                      Variable_2 = character(),
+                      Correlation = numeric(),
+                      p_value = numeric(),
+                      stringsAsFactors = FALSE)
+
+# Función para calcular correlación y p-valor
+cor_with_p <- function(x, y) {
+  cor_test <- cor.test(x, y, method = "spearman", exact = FALSE)
+  return(c(correlation = cor_test$estimate, p_value = cor_test$p.value))
+}
+
+# Iterar sobre todas las combinaciones de variables
+for (approx_var in approx_vars) {
+  for (prop_var in prop_vars) {
+    # Extraer las columnas relevantes y eliminar NAs
+    approx_data <- na.omit(correlation_tab[[approx_var]])
+    prop_data <- na.omit(correlation_tab[[prop_var]])
+    
+    # Agregar resultados a la tabla
+      results <- rbind(results, data.frame(
+        Variable_1 = approx_var,
+        Variable_2 = prop_var,
+        Correlation = result["correlation"],
+        p_value = result["p_value"],
+        stringsAsFactors = FALSE  # Asegurarse de que los nombres de las variables no se conviertan en factores
+      ))
+    }
+  }
+}
+
+# Imprimir la tabla de resultados
+print(results)
+
+# Opcional: formatear los p-valores
+results$p_value <- formatC(results$p_value, format = "f", digits = 4)
+```
+
+
+
 
 
 
