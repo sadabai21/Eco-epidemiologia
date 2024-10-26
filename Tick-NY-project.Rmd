@@ -33,6 +33,7 @@ options(scipen = 999)
 datos<- read.csv("C:/Users/ipsad/OneDrive/Escritorio/Eco-epidemiology/SI_yard.csv", header=T, sep=";", dec=",")
 
 ```
+
 ## Pre-process data
 
 ```{R  process}
@@ -42,11 +43,15 @@ cat_vars<- c("House.ID", "Address", "Park", "Neighborhood", "Ticks","Lawn", "Log
 datos[cat_vars] <- lapply(datos[cat_vars], as.factor)
 
 ```
-#Análisis descriptivo:
-We visualize the categorical explanatory variables against the presence of ticks
+
+# Análisis descriptivo:
+
+## Variables categóricas: variables against the
+
+presence of ticks
 
 ```{R Filter_data__Y}
-#Dentro de del nivel de infectados o no factorizamos estableciendo el 0 para no infectados y el 1 para infectados.
+#Dentro del nivel de infectados o no factorizamos estableciendo el 0 para no infectados y el 1 para infectados.
 datos$Ticks_label <- factor(datos$Ticks, levels = c("N", "Y"), labels = c("NO", "YES"))
 
 #Seleccionamos las variables categóricas que nos interesan:
@@ -81,7 +86,8 @@ for (var in categorical_variables) {
 }
 grid.arrange(grobs=cat_plots, ncol=5, nrow=4)
 ```
-Calculamos las proporciones
+
+### Distribución (tabla de contingencia) y mostramos las proporciones:
 
 ```{R Proportions}
 contingency_results <- data.frame(Variable = character(),
@@ -107,7 +113,9 @@ for (var in categorical_variables) {
   }
 }
 ```
-# Format and display the results as a table
+
+### Resultados en formato tabla
+
 ```{R Resultados}
 contingency_results %>%
   mutate(No_Infestation = scales::percent(No_Infestation, accuracy = 0.1),
@@ -122,8 +130,8 @@ contingency_results %>%
   row_spec(0, bold = TRUE, color = "black")
 ```
 
-#Test Fisher test for each categorical variable
- 
+### Test estadístico (Fisher) para cada variable categórica:
+
 ```{R Fisher test}
 # Initialize an empty data frame to store results
 fisher_results <- data.frame(Variable = character(),
@@ -166,8 +174,9 @@ fisher_results %>%
   row_spec(which(fisher_results$Significance != ""), bold = TRUE) %>%
   row_spec(0, bold = TRUE, color = "black") 
 ```
-  
-#Hacemos lo mismo con las variables numéricas:
+
+## Variables numéricas: 
+### Distribución (diagrama violín) y presentación en formato tabla:
 
 ```{R Var_numericas 1}
 
@@ -229,7 +238,8 @@ for (var in var_num2) {
 grid.arrange(grobs = num_plots2, ncol = 6, nrow = 5)
 
 ```
-#Calculamos Wilcox-test
+
+### Test estadístico (Wilcox-test):
 
 ```{R Wilcox_test}
 # Inicializa el data frame vacío para los resultados
@@ -403,96 +413,81 @@ results %>%
   row_spec(which(results$Significance != ""), bold = TRUE) %>%
   row_spec(0, bold = TRUE, color = "black")
 ```
-```{R Relacionando variables}
-#Variable Deer con Fence:
 
-  # Test de correlación de Krustal entre Deer_VisR y Fencing.yard.
+# Hipótesis y análisis univariados:
 
+## Deer-Fencing
+
+```{R deer}
 kruskal.test(datos$Fencing.yard., datos$Deer_VisR)
-      #p-valor=0,446
-
-  # Test de correlación Spearman entre las variables animales y ApproxM...
-
-# Cargar librerías necesarias
-library(tidyverse)
-
-# Seleccionar solo las columnas numéricas que te interesan
-correlation_tab <- datos %>%
-  select(ApproxMOrnamentals, ApproxMherbaceous, ApproxMnonherbaceous, ApproxMweeds, 
-         ApproxMevergreen, ApproxMgrass, Deer_VisR, Raccon_VisR, Woodchuck_VisR, 
-         Cat_VisR, Possum_VisR, Skunk_VisR, Squirrel_VisR)
-
-# Calcular la matriz de correlación
-correlation_matrix <- cor(correlation_tab, use = "complete.obs", method = "spearman")
-
-# Imprimir la tabla de correlación
-correlation_matrix
-
-
-# Cargar librerías necesarias
-library(tidyverse)
-
-# Seleccionar las variables numéricas de interés
-correlation_tab <- datos 
-  select(ApproxMOrnamentals, ApproxMherbaceous, ApproxMnonherbaceous, ApproxMweeds, 
-         ApproxMevergreen, ApproxMgrass, Deer_VisR, Raccon_VisR, Woodchuck_VisR, 
-         Cat_VisR, Possum_VisR, Skunk_VisR, Squirrel_VisR)
-
-# Eliminar filas con NA
-correlation_tab <- na.omit(correlation_tab)
-
-# Verificar que no haya nombres faltantes en las columnas
-if (any(is.na(names(correlation_tab)))) {
-  stop("Hay nombres faltantes en las columnas de los datos.")
-}
-
-# Función para calcular correlación y p-valor con exact = FALSE
-cor_with_p <- function(x, y) {
-  cor_test <- cor.test(x, y, method = "spearman", exact = FALSE)
-  return(c(correlation = cor_test$estimate, p_value = cor_test$p.value))
-}
-
-# Crear una tabla de resultados vacía
-results <- data.frame(matrix(ncol = 4, nrow = 0))
-colnames(results) <- c("Variable_1", "Variable_2", "Correlation", "p_value")
-
-# Iterar sobre todas las combinaciones de variables para calcular correlaciones y p-valores
-for (i in 1:(ncol(correlation_tab) - 1)) {
-  for (j in (i + 1):ncol(correlation_tab)) {
-    # Verificar si ambos nombres de variables son válidos
-    if (!is.na(names(correlation_tab)[i]) && !is.na(names(correlation_tab)[j])) {
-      result <- cor_with_p(correlation_tab[[i]], correlation_tab[[j]])
-      # Evitar problemas con los nombres
-      results <- rbind(results, data.frame(Variable_1 = names(correlation_tab)[i],
-                                           Variable_2 = names(correlation_tab)[j],
-                                           Correlation = result["correlation"],
-                                           p_value = result["p_value"], 
-                                           check.names = FALSE))
-    } else {
-      warning(paste("Nombres faltantes para las variables en la combinación:", 
-                    names(correlation_tab)[i], "y", names(correlation_tab)[j]))
-    }
-  }
-}
-
-# Imprimir la tabla de resultados
-print(results)
-
 ```
 
-``` {R  Variable Approx_Log}
+## Animales-ApproxM...
 
-#Variable ApproxM... con Log. brush/ Food shelter/Lawn/ Vegetable/ Birdfeeder/ Trashcan/Compost.bin/Wood
+```{R animal}
+# Extract numeric variables related to animals
+animal_ApproxM_vars <- c("Woodchuck_VisR", "Deer_VisR",	"Raccon_VisR",	"Cat_VisR",	"Possum_VisR",	"Skunk_VisR", "Squirrel_VisR", "ApproxMOrnamentals",	"ApproxMherbaceous", "ApproxMnonherbaceous", "ApproxMweeds", "ApproxMevergreen", "ApproxMgrass")
+  
+  # Compute the Spearman correlation matrix with significance
+  library(Hmisc)
+  cor_res <- rcorr(as.matrix(datos[animal_ApproxM_vars]), type = "spearman")
+  
+  # Extract the correlation coefficients and p-values
+  cor_matrix <- cor_res$r
+  p_matrix <- cor_res$P
+  
+  # Set the diagonal elements of both matrices to NA
+  diag(cor_matrix) <- NA
+  diag(p_matrix) <- NA
+  
+  # Format the matrices with three decimal places and no scientific notation
+  formatted_cor_matrix <- formatC(cor_matrix, format = "f", digits = 3)
+  formatted_p_matrix <- formatC(p_matrix, format = "f", digits = 3)
+  
+    # Convert matrices to data frames for better kable formatting
+  cor_df <- as.data.frame(formatted_cor_matrix)
+  p_df <- as.data.frame(formatted_p_matrix)
+  
+  # Create row and column names for clarity
+  rownames(cor_df) <- colnames(cor_df) <- animal_ApproxM_vars
+  rownames(p_df) <- colnames(p_df) <- animal_ApproxM_vars
+  
+  # Print the correlation matrix using kable
+  kable(cor_df, caption = "Spearman Correlation Matrix", align = "c") %>%
+    kable_styling(full_width = FALSE, position = "left", 
+                  bootstrap_options = c("striped", "hover", "condensed")) %>%
+        column_spec(1:ncol(cor_df), color = "black") %>%  
+    row_spec(0, color = "black", bold = TRUE)
+  
+  # Print the p-value matrix using kable
+  kable(p_df, caption = "P-Value Matrix for Spearman Correlations", align = "c") %>%
+    kable_styling(full_width = FALSE, position = "left", 
+                  bootstrap_options = c("striped", "hover", "condensed")) %>%
+    column_spec(1:ncol(cor_df), color = "black") %>%  
+    row_spec(0, color = "black", bold = TRUE)        
+  
 
+  # Visualize the correlation matrix without the diagonal elements
+  corrplot(cor_matrix, method = "circle", na.label = " ")
+  # Print the p-value matrix using kable
+  kable(p_df, caption = "P-Value Matrix for Spearman Correlations", align = "c") %>%
+    kable_styling(full_width = FALSE, position = "left", 
+                  bootstrap_options = c("striped", "hover", "condensed")) %>%
+    column_spec(1:ncol(cor_df), color = "black") %>%  
+    row_spec(0, color = "black", bold = TRUE)   
+```
+
+## ApproxM-Log.brush/ Food shelter/Lawn/ Vegetable/ Birdfeeder/
+
+Trashcan/Compost.bin/Wood ###ApproxM-Log.brush:
+
+```{R  Variable Approx_Log}
 Numeric_plants<- c("ApproxMOrnamentals", "ApproxMherbaceous", "ApproxMnonherbaceous", "ApproxMweeds", "ApproxMevergreen", "ApproxMgrass")
 
 # Initialize an empty data frame to store results
 results <- data.frame(Variable = character(),
                       p_value = numeric(),
                       stringsAsFactors = FALSE)
-```
-#Calculamos la correlación PLANTAS-LOG BRUSH
-``` {R Log_brush}
 
 #Perform Mann-Whitney test for each numeric variable 
 for (var in Numeric_plants) {
@@ -521,11 +516,11 @@ results %>%
   column_spec(3, bold = TRUE, color = "red") %>%
   row_spec(which(results$Significance != ""), bold = TRUE) %>%
   row_spec(0, bold = TRUE, color = "black")
-``` 
-#Calculamos la correlación PLANTAS-FOOD SHELTER
-  
-``` {R FOOD SHELTER} 
-                 
+```
+
+### ApproxM-Food shelter:
+
+```{R food shelter}
 
 Numeric_plants<- c("ApproxMOrnamentals", "ApproxMherbaceous", "ApproxMnonherbaceous", "ApproxMweeds", "ApproxMevergreen", "ApproxMgrass")
 
@@ -562,10 +557,11 @@ results %>%
   row_spec(0, bold = TRUE, color = "black")
 
 ```
-#Calculamos la correlación PLANTAS-LAWN
-``` {R Lawn} 
-                 
 
+### ApproxM-Lawn:
+
+```{R Lawn}
+                 
 Numeric_plants<- c("ApproxMOrnamentals", "ApproxMherbaceous", "ApproxMnonherbaceous", "ApproxMweeds", "ApproxMevergreen", "ApproxMgrass")
 
 # Initialize an empty data frame to store results
@@ -601,8 +597,10 @@ results %>%
   row_spec(0, bold = TRUE, color = "black")
 
 ```
-#Calculamos la correlación PLANTAS-BIRDFEEDER
-``` {R BIRDFEEDER} 
+
+### ApproxM-Birdfeeder:
+
+```{R BIRDFEEDER}
 
 Numeric_plants<- c("ApproxMOrnamentals", "ApproxMherbaceous", "ApproxMnonherbaceous", "ApproxMweeds", "ApproxMevergreen", "ApproxMgrass")
 
@@ -639,8 +637,10 @@ results %>%
   row_spec(0, bold = TRUE, color = "black")
 
 ```
-#Calculamos la correlación PLANTAS-VEGETABLE
-``` {R Vegetable} 
+
+### ApproxM-Vegetable:
+
+```{R Vegetable}
                  
 
 Numeric_plants<- c("ApproxMOrnamentals", "ApproxMherbaceous", "ApproxMnonherbaceous", "ApproxMweeds", "ApproxMevergreen", "ApproxMgrass")
@@ -678,8 +678,10 @@ results %>%
   row_spec(0, bold = TRUE, color = "black")
 
 ```
-#Calculamos la correlación PLANTAS-TRASHCAN
-``` {R TRASHCAN} 
+
+### ApproxM-Trashcan:
+
+```{R TRASHCAN}
                  
 
 Numeric_plants<- c("ApproxMOrnamentals", "ApproxMherbaceous", "ApproxMnonherbaceous", "ApproxMweeds", "ApproxMevergreen", "ApproxMgrass")
@@ -717,9 +719,10 @@ results %>%
   row_spec(0, bold = TRUE, color = "black")
 
 ```
-#Calculamos la correlación PLANTAS-COMPOST.BIN
-``` {R COMPOST BIN} 
-                 
+
+### ApproxM-Compost.bin:
+
+```{R COMPOST BIN}
 
 Numeric_plants<- c("ApproxMOrnamentals", "ApproxMherbaceous", "ApproxMnonherbaceous", "ApproxMweeds", "ApproxMevergreen", "ApproxMgrass")
 
@@ -756,8 +759,10 @@ results %>%
   row_spec(0, bold = TRUE, color = "black")
 
 ```
-#Calculamos la correlación PLANTAS-WOOD
-``` {R WOOD} 
+
+### ApproxM-Wood:
+
+```{R WOOD}
 
 Numeric_plants<- c("ApproxMOrnamentals", "ApproxMherbaceous", "ApproxMnonherbaceous", "ApproxMweeds", "ApproxMevergreen", "ApproxMgrass")
 
@@ -795,121 +800,203 @@ results %>%
 
 ```
 
-#Variable ApproxM... con Prop. highcan/ Prop.bare/Prop.imperv/Prop.grass/Prop.shrub/Prop.lowcan
+## ApproxM-Prop.
+
+highcan/Prop.bare/Prop.imperv/Prop.grass/Prop.shrub/Prop.lowcan
 
 ```{R props}
 
-# Definir las variables de interés
-approx_vars <- c("ApproxMOrnamentals", "ApproxMherbaceous", "ApproxMnonherbaceous",
-                 "ApproxMweeds", "ApproxMevergreen", "ApproxMgrass")
+ # Extract numeric variables related to animals
+  plants_prop_vars <- c("ApproxMOrnamentals", "ApproxMherbaceous", "ApproxMnonherbaceous","ApproxMweeds", "ApproxMevergreen", "ApproxMgrass","prop.shrub", "prop.lowcan", "prop.highcan", "prop.bare", "prop.imperv", "prop.grass")
+  
+  # Compute the Spearman correlation matrix with significance
+  library(Hmisc)
+  cor_res <- rcorr(as.matrix(datos[plants_prop_vars]), type = "spearman")
+  
+  # Extract the correlation coefficients and p-values
+  cor_matrix <- cor_res$r
+  p_matrix <- cor_res$P
+  
+  # Set the diagonal elements of both matrices to NA
+  diag(cor_matrix) <- NA
+  diag(p_matrix) <- NA
+  
+  # Format the matrices with three decimal places and no scientific notation
+  formatted_cor_matrix <- formatC(cor_matrix, format = "f", digits = 3)
+  formatted_p_matrix <- formatC(p_matrix, format = "f", digits = 3)
+  
+    # Convert matrices to data frames for better kable formatting
+  cor_df <- as.data.frame(formatted_cor_matrix)
+  p_df <- as.data.frame(formatted_p_matrix)
+  
+  # Create row and column names for clarity
+  rownames(cor_df) <- colnames(cor_df) <- plants_prop_vars
+  rownames(p_df) <- colnames(p_df) <- plants_prop_vars
+  
+  # Print the correlation matrix using kable
+  kable(cor_df, caption = "Spearman Correlation Matrix", align = "c") %>%
+    kable_styling(full_width = FALSE, position = "left", 
+                  bootstrap_options = c("striped", "hover", "condensed")) %>%
+        column_spec(1:ncol(cor_df), color = "black") %>%  
+    row_spec(0, color = "black", bold = TRUE)
+  
+  # Print the p-value matrix using kable
+  kable(p_df, caption = "P-Value Matrix for Spearman Correlations", align = "c") %>%
+    kable_styling(full_width = FALSE, position = "left", 
+                  bootstrap_options = c("striped", "hover", "condensed")) %>%
+    column_spec(1:ncol(cor_df), color = "black") %>%  
+    row_spec(0, color = "black", bold = TRUE)        
+  
 
-prop_vars <- c("prop.shrub", "prop.lowcan", "prop.highcan", "prop.bare", "prop.imperv")
-
-# Crear una tabla de resultados vacía
-results <- data.frame(Variable_1 = character(),
-                      Variable_2 = character(),
-                      Correlation = numeric(),
-                      p_value = numeric(),
-                      stringsAsFactors = FALSE)
-
-# Función para calcular correlación y p-valor
-cor_with_p <- function(x, y) {
-  cor_test <- cor.test(x, y, method = "spearman", exact = FALSE)
-  return(c(correlation = cor_test$estimate, p_value = cor_test$p.value))
-}
-
-# Iterar sobre todas las combinaciones de variables
-for (approx_var in approx_vars) {
-  for (prop_var in prop_vars) {
-    # Extraer las columnas relevantes y eliminar NAs
-    approx_data <- na.omit(correlation_tab[[approx_var]])
-    prop_data <- na.omit(correlation_tab[[prop_var]])
-    
-    # Asegurarse de que ambas variables tienen la misma longitud después de eliminar NAs
-    valid_indices <- complete.cases(approx_data, prop_data)
-    
-    if (sum(valid_indices) > 1) {  # Debe haber más de un par para calcular correlación
-      result <- cor_with_p(approx_data[valid_indices], prop_data[valid_indices])
-      
-      # Agregar resultados a la tabla
-      results <- rbind(results, data.frame(
-        Variable_1 = approx_var,
-        Variable_2 = prop_var,
-        Correlation = result["correlation"],
-        p_value = result["p_value"],
-        stringsAsFactors = FALSE  # Asegurarse de que los nombres de las variables no se conviertan en factores
-      ))
-    }
-  }
-}
-
-# Imprimir la tabla de resultados
-print(results)
-
-# Opcional: formatear los p-valores
-results$p_value <- formatC(results$p_value, format = "f", digits = 4)
-``` 
-
-
-
-
-#Variable Nº tubes con animales
-```{R tubes}
-# Definir las variables de interés
-approx_vars <- c("Deer_VisR", "Raccon_VisR", "Woodchuck_VisR", 
-         "Cat_VisR", "Possum_VisR", "Skunk_VisR", "Squirrel_VisR", "ApproxMherbaceous", 
-                 "ApproxMweeds", "ApproxMevergreen", "ApproxMgrass")
-
-prop_vars <- c("Number.tubes","Number.tubes.with.hair", "Number.tubes.peromyscus",	"Number.tubes.insectivore","Number.tubes.vole", "Number.tubes.raccoon", "Number.tubes.chipmunk")
-
-# Crear una tabla de resultados vacía
-results <- data.frame(Variable_1 = character(),
-                      Variable_2 = character(),
-                      Correlation = numeric(),
-                      p_value = numeric(),
-                      stringsAsFactors = FALSE)
-
-# Función para calcular correlación y p-valor
-cor_with_p <- function(x, y) {
-  cor_test <- cor.test(x, y, method = "spearman", exact = FALSE)
-  return(c(correlation = cor_test$estimate, p_value = cor_test$p.value))
-}
-
-# Iterar sobre todas las combinaciones de variables
-for (approx_var in approx_vars) {
-  for (prop_var in prop_vars) {
-    # Extraer las columnas relevantes y eliminar NAs
-    approx_data <- na.omit(correlation_tab[[approx_var]])
-    prop_data <- na.omit(correlation_tab[[prop_var]])
-    
-    # Agregar resultados a la tabla
-      results <- rbind(results, data.frame(
-        Variable_1 = approx_var,
-        Variable_2 = prop_var,
-        Correlation = result["correlation"],
-        p_value = result["p_value"],
-        stringsAsFactors = FALSE  # Asegurarse de que los nombres de las variables no se conviertan en factores
-      ))
-    }
-  }
-}
-
-# Imprimir la tabla de resultados
-print(results)
-
-# Opcional: formatear los p-valores
-results$p_value <- formatC(results$p_value, format = "f", digits = 4)
+  # Visualize the correlation matrix without the diagonal elements
+  corrplot(cor_matrix, method = "circle", na.label = " ")
 ```
 
+## Nºtubes-Animales
 
+```{R tubes}
+ # Extract numeric variables related to animals
+  Animals_tubes_vars <- c("Deer_VisR", "Raccon_VisR", "Woodchuck_VisR", 
+         "Cat_VisR", "Possum_VisR", "Skunk_VisR", "Squirrel_VisR", "Number.tubes","Number.tubes.with.hair", "Number.tubes.peromyscus",	"Number.tubes.insectivore","Number.tubes.vole", "Number.tubes.raccoon", "Number.tubes.chipmunk")
+  
+  # Compute the Spearman correlation matrix with significance
+  library(Hmisc)
+  cor_res <- rcorr(as.matrix(datos[Animals_tubes_vars]), type = "spearman")
+  
+  # Extract the correlation coefficients and p-values
+  cor_matrix <- cor_res$r
+  p_matrix <- cor_res$P
+  
+  # Set the diagonal elements of both matrices to NA
+  diag(cor_matrix) <- NA
+  diag(p_matrix) <- NA
+  
+  # Format the matrices with three decimal places and no scientific notation
+  formatted_cor_matrix <- formatC(cor_matrix, format = "f", digits = 3)
+  formatted_p_matrix <- formatC(p_matrix, format = "f", digits = 3)
+  
+    # Convert matrices to data frames for better kable formatting
+  cor_df <- as.data.frame(formatted_cor_matrix)
+  p_df <- as.data.frame(formatted_p_matrix)
+  
+  # Create row and column names for clarity
+  rownames(cor_df) <- colnames(cor_df) <- Animals_tubes_vars
+  rownames(p_df) <- colnames(p_df) <- Animals_tubes_vars
+  
+  # Print the correlation matrix using kable
+  kable(cor_df, caption = "Spearman Correlation Matrix", align = "c") %>%
+    kable_styling(full_width = FALSE, position = "left", 
+                  bootstrap_options = c("striped", "hover", "condensed")) %>%
+        column_spec(1:ncol(cor_df), color = "black") %>%  
+    row_spec(0, color = "black", bold = TRUE)
+  
+  # Print the p-value matrix using kable
+  kable(p_df, caption = "P-Value Matrix for Spearman Correlations", align = "c") %>%
+    kable_styling(full_width = FALSE, position = "left", 
+                  bootstrap_options = c("striped", "hover", "condensed")) %>%
+    column_spec(1:ncol(cor_df), color = "black") %>%  
+    row_spec(0, color = "black", bold = TRUE)        
+  
 
+  # Visualize the correlation matrix without the diagonal elements
+  corrplot(cor_matrix, method = "circle", na.label = " ")
+```
+##Prop-Nºtubes
+```{R N_tubes}
 
+# Extract numeric variables related to animals
+  Prop_tubes_vars <- c("prop.shrub", "prop.lowcan", "prop.highcan", "prop.bare", "prop.grass", "prop.imperv", "Number.tubes","Number.tubes.with.hair", "Number.tubes.peromyscus",	"Number.tubes.insectivore","Number.tubes.vole", "Number.tubes.raccoon", "Number.tubes.chipmunk")
+  
+  # Compute the Spearman correlation matrix with significance
+  library(Hmisc)
+  cor_res <- rcorr(as.matrix(datos[Prop_tubes_vars]), type = "spearman")
+  
+  # Extract the correlation coefficients and p-values
+  cor_matrix <- cor_res$r
+  p_matrix <- cor_res$P
+  
+  # Set the diagonal elements of both matrices to NA
+  diag(cor_matrix) <- NA
+  diag(p_matrix) <- NA
+  
+  # Format the matrices with three decimal places and no scientific notation
+  formatted_cor_matrix <- formatC(cor_matrix, format = "f", digits = 3)
+  formatted_p_matrix <- formatC(p_matrix, format = "f", digits = 3)
+  
+    # Convert matrices to data frames for better kable formatting
+  cor_df <- as.data.frame(formatted_cor_matrix)
+  p_df <- as.data.frame(formatted_p_matrix)
+  
+  # Create row and column names for clarity
+  rownames(cor_df) <- colnames(cor_df) <- Prop_tubes_vars
+  rownames(p_df) <- colnames(p_df) <- Prop_tubes_vars
+  
+  # Print the correlation matrix using kable
+  kable(cor_df, caption = "Spearman Correlation Matrix", align = "c") %>%
+    kable_styling(full_width = FALSE, position = "left", 
+                  bootstrap_options = c("striped", "hover", "condensed")) %>%
+        column_spec(1:ncol(cor_df), color = "black") %>%  
+    row_spec(0, color = "black", bold = TRUE)
+  
+  # Print the p-value matrix using kable
+  kable(p_df, caption = "P-Value Matrix for Spearman Correlations", align = "c") %>%
+    kable_styling(full_width = FALSE, position = "left", 
+                  bootstrap_options = c("striped", "hover", "condensed")) %>%
+    column_spec(1:ncol(cor_df), color = "black") %>%  
+    row_spec(0, color = "black", bold = TRUE)        
+  
 
+  # Visualize the correlation matrix without the diagonal elements
+  corrplot(cor_matrix, method = "circle", na.label = " ")
+```
+##Type_edge-Animals
+```{R edge}
+kruskal.test(datos$type_edge, datos$Deer_VisR)
+kruskal.test(datos$type_edge, datos$Skunk_VisR)
+kruskal.test(datos$type_edge, datos$Raccon_VisR)
+kruskal.test(datos$type_edge, datos$Possum_VisR)
+kruskal.test(datos$type_edge, datos$Cat_VisR)
+kruskal.test(datos$type_edge, datos$Squirrel_VisR)
+kruskal.test(datos$type_edge, datos$Woodchuck_VisR)
 
+#No entiendo este código que me ha escrito chat gpt para estas variables:
+# Ejecutar las pruebas de Kruskal-Wallis
+kruskal_deer <- kruskal.test(datos$type_edge, datos$Deer_VisR)$p.value
+kruskal_skunk <- kruskal.test(datos$type_edge, datos$Skunk_VisR)$p.value
+kruskal_raccon <- kruskal.test(datos$type_edge, datos$Raccon_VisR)$p.value
+kruskal_possum <- kruskal.test(datos$type_edge, datos$Possum_VisR)$p.value
+kruskal_cat <- kruskal.test(datos$type_edge, datos$Cat_VisR)$p.value
+kruskal_squirrel <- kruskal.test(datos$type_edge, datos$Squirrel_VisR)$p.value
+kruskal_woodchuck <- kruskal.test(datos$type_edge, datos$Woodchuck_VisR)$p.value
 
+# Crear la tabla con los resultados
+p_values_table <- data.frame(
+  Comparacion = c("type_edge vs Deer_VisR", "type_edge vs Skunk_VisR", 
+                  "type_edge vs Raccon_VisR", "type_edge vs Possum_VisR",
+                  "type_edge vs Cat_VisR", "type_edge vs Squirrel_VisR", 
+                  "type_edge vs Woodchuck_VisR"),
+  P_valor = c(kruskal_deer, kruskal_skunk, kruskal_raccon, kruskal_possum, 
+              kruskal_cat, kruskal_squirrel, kruskal_woodchuck)
+)
 
+# Imprimir la tabla
+print(p_values_table)
+```
+##Play/seating-Animal
+```{R seating}
+# Variable Deer
+##Play
+test_result_Deer <- wilcox.test(datos$Play ~ datos$Deer_VisR)
+results <- rbind(results, data.frame(Variable = "Deer_VisR", p_value = test_result_Deer$p.value))
+##Seating
+test_result_Deer <- wilcox.test(datos$Seating ~ datos$Deer_VisR)
+results <- rbind(results, data.frame(Variable = "Deer_VisR", p_value = test_result_Deer$p.value))
 
-
-
-
-
+# Variable Raccoon
+##Play
+test_result_Raccoon <- wilcox.test(datos$Play ~ datos$Raccoon_VisR)
+results <- rbind(results, data.frame(Variable = "Raccoon_VisR", p_value = test_result_Deer$p.value))
+##Seating
+test_result_Raccoon <- wilcox.test(datos$Raccoon_VisR ~ datos$Seating)
+results <- rbind(results, data.frame(Variable = "Raccoon_VisR", p_value = test_result_Raccoon$p.value))
+```
