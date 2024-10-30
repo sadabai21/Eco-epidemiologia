@@ -95,6 +95,7 @@ contingency_results <- data.frame(Variable = character(),
                                   No_Infestation = numeric(),
                                   Yes_Infestation = numeric(),
                                   stringsAsFactors = FALSE)
+datos$Fence <- if_else(datos$Fence == "2", "3", datos$Fence)
 for (var in categorical_variables) {
   # Create a contingency table
   contingency_table <- table(datos[[var]], datos$Ticks_label)
@@ -200,7 +201,7 @@ create_violin_plot <- function(data, var_num, target_var) {
 }
 
 # Create list of numeric variables to visualize
-var_num1<-c("Number.tubes", "I", "A", "H", "Number.tubes.peromyscus","Number.tubes.insectivore", "Number.tubes.vole", "Number.tubes.raccoon", "Number.tubes.chipmunk", "Woodchuck_VisR", "Deer_VisR","Raccon_VisR", "Cat_VisR","Possum_VisR", "Skunk_VisR", "Squirrel_VisR", "Acres")
+var_num1<-c("Number.tubes", "Number.tubes.peromyscus","Number.tubes.insectivore", "Number.tubes.vole", "Number.tubes.raccoon", "Number.tubes.chipmunk", "Woodchuck_VisR", "Deer_VisR","Raccon_VisR", "Cat_VisR","Possum_VisR", "Skunk_VisR", "Squirrel_VisR", "Acres")
 
 for (var in var_num1) {
   # Verifica la tabla de contingencia para cada variable numérica
@@ -216,7 +217,7 @@ for (var in var_num1) {
 }
 
 # Arrange the plots in a 4x4 grid
-grid.arrange(grobs = num_plots1, ncol = 6, nrow = 5)
+grid.arrange(grobs = num_plots1, ncol = 5, nrow = 3)
 
 ```
 
@@ -235,7 +236,7 @@ for (var in var_num2) {
 }
 
 # Arrange the plots in a 4x4 grid
-grid.arrange(grobs = num_plots2, ncol = 6, nrow = 5)
+grid.arrange(grobs = num_plots2, ncol = 5, nrow = 3)
 
 ```
 
@@ -476,7 +477,459 @@ animal_ApproxM_vars <- c("Woodchuck_VisR", "Deer_VisR",	"Raccon_VisR",	"Cat_VisR
     column_spec(1:ncol(cor_df), color = "black") %>%  
     row_spec(0, color = "black", bold = TRUE)   
 ```
+##Animales-Prop
+```{R animal}
+# Extract numeric variables related to animals
+animal_ApproxM_vars2 <- c("Woodchuck_VisR", "Deer_VisR",	"Raccon_VisR",	"Cat_VisR",	"Possum_VisR",	"Skunk_VisR", "Squirrel_VisR", "prop.shrub", "prop.lowcan", "prop.highcan", "prop.bare", "prop.imperv", "prop.grass")
+  
+  # Compute the Spearman correlation matrix with significance
+  library(Hmisc)
+  cor_res <- rcorr(as.matrix(datos[animal_ApproxM_vars2]), type = "spearman")
+  
+  # Extract the correlation coefficients and p-values
+  cor_matrix <- cor_res$r
+  p_matrix <- cor_res$P
+  
+  # Set the diagonal elements of both matrices to NA
+  diag(cor_matrix) <- NA
+  diag(p_matrix) <- NA
+  
+  # Format the matrices with three decimal places and no scientific notation
+  formatted_cor_matrix <- formatC(cor_matrix, format = "f", digits = 3)
+  formatted_p_matrix <- formatC(p_matrix, format = "f", digits = 3)
+  
+    # Convert matrices to data frames for better kable formatting
+  cor_df <- as.data.frame(formatted_cor_matrix)
+  p_df <- as.data.frame(formatted_p_matrix)
+  
+  # Create row and column names for clarity
+  rownames(cor_df) <- colnames(cor_df) <- animal_ApproxM_vars2
+  rownames(p_df) <- colnames(p_df) <- animal_ApproxM_vars2
+  
+  # Print the correlation matrix using kable
+  kable(cor_df, caption = "Spearman Correlation Matrix", align = "c") %>%
+    kable_styling(full_width = FALSE, position = "left", 
+                  bootstrap_options = c("striped", "hover", "condensed")) %>%
+        column_spec(1:ncol(cor_df), color = "black") %>%  
+    row_spec(0, color = "black", bold = TRUE)
+  
+  # Print the p-value matrix using kable
+  kable(p_df, caption = "P-Value Matrix for Spearman Correlations", align = "c") %>%
+    kable_styling(full_width = FALSE, position = "left", 
+                  bootstrap_options = c("striped", "hover", "condensed")) %>%
+    column_spec(1:ncol(cor_df), color = "black") %>%  
+    row_spec(0, color = "black", bold = TRUE)        
+  
 
+  # Visualize the correlation matrix without the diagonal elements
+  corrplot(cor_matrix, method = "circle", na.label = " ")
+  # Print the p-value matrix using kable
+  kable(p_df, caption = "P-Value Matrix for Spearman Correlations", align = "c") %>%
+    kable_styling(full_width = FALSE, position = "left", 
+                  bootstrap_options = c("striped", "hover", "condensed")) %>%
+    column_spec(1:ncol(cor_df), color = "black") %>%  
+    row_spec(0, color = "black", bold = TRUE)   
+```
+## Animales-Nº tubes
+
+```{R tubes}
+ # Extract numeric variables related to animals
+  Animals_tubes_vars <- c("Deer_VisR", "Raccon_VisR", "Woodchuck_VisR", 
+         "Cat_VisR", "Possum_VisR", "Skunk_VisR", "Squirrel_VisR", "Number.tubes","Number.tubes.with.hair", "Number.tubes.peromyscus",	"Number.tubes.insectivore","Number.tubes.vole", "Number.tubes.raccoon", "Number.tubes.chipmunk")
+  
+  # Compute the Spearman correlation matrix with significance
+  library(Hmisc)
+  cor_res <- rcorr(as.matrix(datos[Animals_tubes_vars]), type = "spearman")
+  
+  # Extract the correlation coefficients and p-values
+  cor_matrix <- cor_res$r
+  p_matrix <- cor_res$P
+  
+  # Set the diagonal elements of both matrices to NA
+  diag(cor_matrix) <- NA
+  diag(p_matrix) <- NA
+  
+  # Format the matrices with three decimal places and no scientific notation
+  formatted_cor_matrix <- formatC(cor_matrix, format = "f", digits = 3)
+  formatted_p_matrix <- formatC(p_matrix, format = "f", digits = 3)
+  
+    # Convert matrices to data frames for better kable formatting
+  cor_df <- as.data.frame(formatted_cor_matrix)
+  p_df <- as.data.frame(formatted_p_matrix)
+  
+  # Create row and column names for clarity
+  rownames(cor_df) <- colnames(cor_df) <- Animals_tubes_vars
+  rownames(p_df) <- colnames(p_df) <- Animals_tubes_vars
+  
+  # Print the correlation matrix using kable
+  kable(cor_df, caption = "Spearman Correlation Matrix", align = "c") %>%
+    kable_styling(full_width = FALSE, position = "left", 
+                  bootstrap_options = c("striped", "hover", "condensed")) %>%
+        column_spec(1:ncol(cor_df), color = "black") %>%  
+    row_spec(0, color = "black", bold = TRUE)
+  
+  # Print the p-value matrix using kable
+  kable(p_df, caption = "P-Value Matrix for Spearman Correlations", align = "c") %>%
+    kable_styling(full_width = FALSE, position = "left", 
+                  bootstrap_options = c("striped", "hover", "condensed")) %>%
+    column_spec(1:ncol(cor_df), color = "black") %>%  
+    row_spec(0, color = "black", bold = TRUE)        
+  
+
+  # Visualize the correlation matrix without the diagonal elements
+  corrplot(cor_matrix, method = "circle", na.label = " ")
+```
+##Animales-Log.brush/Food.shelter/Lawn/Vegetable/Birdfeeder/Trashcan/Compost.bin/Wood
+```{R  Animales-trash}
+# Variable Woodchuck
+
+results <- data.frame(Variable = character(), p_value = numeric(), stringsAsFactors = FALSE)
+test_result_log.brush <- wilcox.test(datos$Woodchuck_VisR ~ datos$Log.brush, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Woodchuck-Log.brush", p_value = test_result_log.brush$p.value))
+
+
+test_result_Food.shelter <- wilcox.test(datos$Woodchuck_VisR ~ datos$Food.shelter, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Woodchuck-Food.shelter", p_value = test_result_Food.shelter$p.value))
+
+test_result_Lawn <- wilcox.test(datos$Woodchuck_VisR ~ datos$Lawn, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Woodchuck-Lawn", p_value = test_result_log.brush$p.value))
+
+test_result_Vegetable <- wilcox.test(datos$Woodchuck_VisR ~ datos$Vegetable, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Woodchuck-Vegetable", p_value = test_result_Vegetable$p.value))
+
+test_result_Birdfeeder <- wilcox.test(datos$Woodchuck_VisR ~ datos$Birdfeeder, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Woodchuck-Birdfeeder", p_value = test_result_Birdfeeder$p.value))
+
+test_result_Trashcan <- wilcox.test(datos$Woodchuck_VisR ~ datos$Trashcan, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Woodchuck-Trashcan", p_value = test_result_Trashcan$p.value))
+
+test_result_Compost.bin <- wilcox.test(datos$Woodchuck_VisR ~ datos$Compost.bin, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Woodchuck-Compost.bin", p_value = test_result_Compost.bin$p.value))
+
+test_result_Wood <- wilcox.test(datos$Woodchuck_VisR ~ datos$Wood, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Woodchuck-Trashcan", p_value = test_result_Wood$p.value))
+
+# Variable Deer
+
+test_result_log.brush <- wilcox.test(datos$Deer_VisR ~ datos$Log.brush, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Deer_VisR-Log.brush", p_value = test_result_log.brush$p.value))
+
+
+test_result_Food.shelter <- wilcox.test(datos$Deer_VisR ~ datos$Food.shelter, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Deer_VisR-Food.shelter", p_value = test_result_Food.shelter$p.value))
+
+test_result_Lawn <- wilcox.test(datos$Deer_VisR ~ datos$Lawn, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Deer_VisR-Lawn", p_value = test_result_log.brush$p.value))
+
+test_result_Vegetable <- wilcox.test(datos$Deer_VisR ~ datos$Vegetable, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Deer_VisR-Vegetable", p_value = test_result_Vegetable$p.value))
+
+test_result_Birdfeeder <- wilcox.test(datos$Deer_VisR ~ datos$Birdfeeder, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Deer_VisR-Birdfeeder", p_value = test_result_Birdfeeder$p.value))
+
+test_result_Trashcan <- wilcox.test(datos$Deer_VisR ~ datos$Trashcan, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Deer_VisR-Trashcan", p_value = test_result_Trashcan$p.value))
+
+test_result_Compost.bin <- wilcox.test(datos$Deer_VisR ~ datos$Compost.bin, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Deer_VisR-Compost.bin", p_value = test_result_Compost.bin$p.value))
+
+test_result_Wood <- wilcox.test(datos$Deer_VisR ~ datos$Wood, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Deer_VisR-Trashcan", p_value = test_result_Wood$p.value))
+
+# Variable Raccon
+
+test_result_log.brush <- wilcox.test(datos$Raccon_VisR ~ datos$Log.brush, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Raccon_VisR-Log.brush", p_value = test_result_log.brush$p.value))
+
+
+test_result_Food.shelter <- wilcox.test(datos$Raccon_VisR ~ datos$Food.shelter, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Raccon_VisR-Food.shelter", p_value = test_result_Food.shelter$p.value))
+
+test_result_Lawn <- wilcox.test(datos$Raccon_VisR ~ datos$Lawn, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Raccon_VisR-Lawn", p_value = test_result_log.brush$p.value))
+
+test_result_Vegetable <- wilcox.test(datos$Raccon_VisR ~ datos$Vegetable, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Raccon_VisR-Vegetable", p_value = test_result_Vegetable$p.value))
+
+test_result_Birdfeeder <- wilcox.test(datos$Raccon_VisR ~ datos$Birdfeeder, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Raccon_VisR-Birdfeeder", p_value = test_result_Birdfeeder$p.value))
+
+test_result_Trashcan <- wilcox.test(datos$Raccon_VisR ~ datos$Trashcan, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Raccon_VisR-Trashcan", p_value = test_result_Trashcan$p.value))
+
+test_result_Compost.bin <- wilcox.test(datos$Raccon_VisR ~ datos$Compost.bin, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Raccon_VisR-Compost.bin", p_value = test_result_Compost.bin$p.value))
+
+test_result_Wood <- wilcox.test(datos$Raccon_VisR ~ datos$Wood, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Raccon_VisR-Trashcan", p_value = test_result_Wood$p.value))
+
+# Variable Cat
+
+test_result_log.brush <- wilcox.test(datos$Cat_VisR ~ datos$Log.brush, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Cat_VisR-Log.brush", p_value = test_result_log.brush$p.value))
+
+
+test_result_Food.shelter <- wilcox.test(datos$Cat_VisR ~ datos$Food.shelter, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Cat_VisR-Food.shelter", p_value = test_result_Food.shelter$p.value))
+
+test_result_Lawn <- wilcox.test(datos$Cat_VisR ~ datos$Lawn, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Cat_VisR-Lawn", p_value = test_result_log.brush$p.value))
+
+test_result_Vegetable <- wilcox.test(datos$Cat_VisR ~ datos$Vegetable, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Cat_VisR-Vegetable", p_value = test_result_Vegetable$p.value))
+
+test_result_Birdfeeder <- wilcox.test(datos$Cat_VisR ~ datos$Birdfeeder, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Cat_VisR-Birdfeeder", p_value = test_result_Birdfeeder$p.value))
+
+test_result_Trashcan <- wilcox.test(datos$Cat_VisR ~ datos$Trashcan, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Cat_VisR-Trashcan", p_value = test_result_Trashcan$p.value))
+
+test_result_Compost.bin <- wilcox.test(datos$Cat_VisR ~ datos$Compost.bin, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Cat_VisR-Compost.bin", p_value = test_result_Compost.bin$p.value))
+
+test_result_Wood <- wilcox.test(datos$Cat_VisR ~ datos$Wood, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Cat_VisR-Trashcan", p_value = test_result_Wood$p.value))
+
+# Variable Possum
+
+test_result_log.brush <- wilcox.test(datos$Possum_VisR ~ datos$Log.brush, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Possum_VisR-Log.brush", p_value = test_result_log.brush$p.value))
+
+
+test_result_Food.shelter <- wilcox.test(datos$Possum_VisR ~ datos$Food.shelter, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Possum_VisR-Food.shelter", p_value = test_result_Food.shelter$p.value))
+
+test_result_Lawn <- wilcox.test(datos$Possum_VisR ~ datos$Lawn, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Possum_VisR-Lawn", p_value = test_result_log.brush$p.value))
+
+test_result_Vegetable <- wilcox.test(datos$Possum_VisR ~ datos$Vegetable, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Possum_VisR-Vegetable", p_value = test_result_Vegetable$p.value))
+
+test_result_Birdfeeder <- wilcox.test(datos$Possum_VisR ~ datos$Birdfeeder, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Possum_VisR-Birdfeeder", p_value = test_result_Birdfeeder$p.value))
+
+test_result_Trashcan <- wilcox.test(datos$Possum_VisR ~ datos$Trashcan, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Possum_VisR-Trashcan", p_value = test_result_Trashcan$p.value))
+
+test_result_Compost.bin <- wilcox.test(datos$Possum_VisR ~ datos$Compost.bin, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Possum_VisR-Compost.bin", p_value = test_result_Compost.bin$p.value))
+
+test_result_Wood <- wilcox.test(datos$Possum_VisR ~ datos$Wood, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Possum_VisR-Trashcan", p_value = test_result_Wood$p.value))
+
+# Variable Skunk
+
+test_result_log.brush <- wilcox.test(datos$Skunk_VisR ~ datos$Log.brush, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Skunk_VisR-Log.brush", p_value = test_result_log.brush$p.value))
+
+
+test_result_Food.shelter <- wilcox.test(datos$Skunk_VisR ~ datos$Food.shelter, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Skunk_VisR-Food.shelter", p_value = test_result_Food.shelter$p.value))
+
+test_result_Lawn <- wilcox.test(datos$Skunk_VisR ~ datos$Lawn, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Skunk_VisR-Lawn", p_value = test_result_log.brush$p.value))
+
+test_result_Vegetable <- wilcox.test(datos$Skunk_VisR ~ datos$Vegetable, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Skunk_VisR-Vegetable", p_value = test_result_Vegetable$p.value))
+
+test_result_Birdfeeder <- wilcox.test(datos$Skunk_VisR ~ datos$Birdfeeder, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Skunk_VisR-Birdfeeder", p_value = test_result_Birdfeeder$p.value))
+
+test_result_Trashcan <- wilcox.test(datos$Skunk_VisR ~ datos$Trashcan, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Skunk_VisR-Trashcan", p_value = test_result_Trashcan$p.value))
+
+test_result_Compost.bin <- wilcox.test(datos$Skunk_VisR ~ datos$Compost.bin, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Skunk_VisR-Compost.bin", p_value = test_result_Compost.bin$p.value))
+
+test_result_Wood <- wilcox.test(datos$Skunk_VisR ~ datos$Wood, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Skunk_VisR-Trashcan", p_value = test_result_Wood$p.value))
+
+# Variable Squirrel
+
+test_result_log.brush <- wilcox.test(datos$Squirrel_VisR ~ datos$Log.brush, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Squirrel_VisR-Log.brush", p_value = test_result_log.brush$p.value))
+
+
+test_result_Food.shelter <- wilcox.test(datos$Squirrel_VisR ~ datos$Food.shelter, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Squirrel_VisR-Food.shelter", p_value = test_result_Food.shelter$p.value))
+
+test_result_Lawn <- wilcox.test(datos$Squirrel_VisR ~ datos$Lawn, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Squirrel_VisR-Lawn", p_value = test_result_log.brush$p.value))
+
+test_result_Vegetable <- wilcox.test(datos$Squirrel_VisR ~ datos$Vegetable, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Squirrel_VisR-Vegetable", p_value = test_result_Vegetable$p.value))
+
+test_result_Birdfeeder <- wilcox.test(datos$Squirrel_VisR ~ datos$Birdfeeder, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Squirrel_VisR-Birdfeeder", p_value = test_result_Birdfeeder$p.value))
+
+test_result_Trashcan <- wilcox.test(datos$Squirrel_VisR ~ datos$Trashcan, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Squirrel_VisR-Trashcan", p_value = test_result_Trashcan$p.value))
+
+test_result_Compost.bin <- wilcox.test(datos$Squirrel_VisR ~ datos$Compost.bin, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Squirrel_VisR-Compost.bin", p_value = test_result_Compost.bin$p.value))
+
+test_result_Wood <- wilcox.test(datos$Squirrel_VisR ~ datos$Wood, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Squirrel_VisR-Trashcan", p_value = test_result_Wood$p.value))
+
+
+# Procesa los resultados para incluir significancia
+results <- results %>%
+  mutate(Significance = case_when(
+    p_value < 0.001 ~ "***",
+    p_value < 0.01 ~ "**",
+    p_value < 0.05 ~ "*",
+    TRUE ~ ""
+  ))
+
+# Formatea los p-valores a cuatro decimales
+results$p_value <- formatC(results$p_value, format = "f", digits = 4)
+
+# Formatea la tabla para un documento Word
+results %>%
+  kable("html", col.names = c("Variable", "p_value", "Significance"), align = "c") %>%
+  kable_styling(full_width = FALSE, position = "left", bootstrap_options = c("striped", "hover", "condensed")) %>%
+  column_spec(1, color = "black") %>%
+  column_spec(2, color = "black") %>%
+  column_spec(3, bold = TRUE, color = "red") %>%
+  row_spec(which(results$Significance != ""), bold = TRUE) %>%
+  row_spec(0, bold = TRUE, color = "black")
+
+
+
+
+```
+##Animals-Type_edge
+```{R edge}
+kruskal.test(datos$type_edge, datos$Deer_VisR)
+kruskal.test(datos$type_edge, datos$Skunk_VisR)
+kruskal.test(datos$type_edge, datos$Raccon_VisR)
+kruskal.test(datos$type_edge, datos$Possum_VisR)
+kruskal.test(datos$type_edge, datos$Cat_VisR)
+kruskal.test(datos$type_edge, datos$Squirrel_VisR)
+kruskal.test(datos$type_edge, datos$Woodchuck_VisR)
+
+
+#No entiendo este código que me ha escrito chat gpt para estas variables:
+# Ejecutar las pruebas de Kruskal-Wallis
+kruskal_deer <- kruskal.test(datos$type_edge, datos$Deer_VisR)$p.value
+kruskal_skunk <- kruskal.test(datos$type_edge, datos$Skunk_VisR)$p.value
+kruskal_raccon <- kruskal.test(datos$type_edge, datos$Raccon_VisR)$p.value
+kruskal_possum <- kruskal.test(datos$type_edge, datos$Possum_VisR)$p.value
+kruskal_cat <- kruskal.test(datos$type_edge, datos$Cat_VisR)$p.value
+kruskal_squirrel <- kruskal.test(datos$type_edge, datos$Squirrel_VisR)$p.value
+kruskal_woodchuck <- kruskal.test(datos$type_edge, datos$Woodchuck_VisR)$p.value
+
+
+
+# Crear la tabla con los resultados
+p_values_table <- data.frame(
+  Comparacion = c("type_edge vs Deer_VisR", "type_edge vs Skunk_VisR", 
+                  "type_edge vs Raccon_VisR", "type_edge vs Possum_VisR",
+                  "type_edge vs Cat_VisR", "type_edge vs Squirrel_VisR", 
+                  "type_edge vs Woodchuck_VisR"),
+  P_valor = c(kruskal_deer, kruskal_skunk, kruskal_raccon, kruskal_possum, 
+              kruskal_cat, kruskal_squirrel, kruskal_woodchuck)
+)
+
+# Imprimir la tabla
+print(p_values_table)
+```
+##Animal- Play/seating
+```{R seating}
+# Variable Deer
+results <- data.frame(Variable = character(), p_value = numeric(), stringsAsFactors = FALSE)
+
+##Play
+datos$Play<-as.factor(datos$Play)
+test_result_Deer1 <- wilcox.test(datos$Deer_VisR ~ datos$Play)
+results <- rbind(results, data.frame(Variable = "Deer_VisR-Play", p_value = test_result_Deer1$p.value))
+
+##Seating
+test_result_Deer2 <- wilcox.test(datos$Deer_VisR ~ datos$Seating)
+results <- rbind(results, data.frame(Variable = "Deer_VisR-Seating", p_value = test_result_Deer2$p.value))
+
+# Variable Raccoon
+##Play
+test_result_Raccon1 <- wilcox.test(datos$Raccon_VisR ~ datos$Play)
+results <- rbind(results, data.frame(Variable = "Raccon_VisR-Play", p_value = test_result_Raccon1$p.value))
+
+##Seating
+test_result_Raccon2 <- wilcox.test(datos$Raccon_VisR ~ datos$Seating)
+results <- rbind(results, data.frame(Variable = "Raccon_VisR-Seating", p_value = test_result_Raccon2$p.value))
+
+# Variable Woodchuck
+
+##Play
+datos$Play<-as.factor(datos$Play)
+test_result_Woodchuck1 <- wilcox.test(datos$Woodchuck_VisR ~ datos$Play)
+results <- rbind(results, data.frame(Variable = "Woodchuck_VisR-Play", p_value = test_result_Woodchuck1$p.value))
+
+##Seating
+test_result_Woodchuck2 <- wilcox.test(datos$Woodchuck_VisR ~ datos$Seating)
+results <- rbind(results, data.frame(Variable = "Woodchuck_VisR-Seating", p_value = test_result_Woodchuck2$p.value))
+
+# Variable Cat
+##Play
+test_result_Cat1 <- wilcox.test(datos$Cat_VisR ~ datos$Play)
+results <- rbind(results, data.frame(Variable = "Cat_VisR-Play", p_value = test_result_Cat1$p.value))
+
+##Seating
+test_result_Cat2 <- wilcox.test(datos$Cat_VisR ~ datos$Seating)
+results <- rbind(results, data.frame(Variable = "Cat_VisR-Seating", p_value = test_result_Cat2$p.value))
+
+# Variable Possum
+##Play
+datos$Play<-as.factor(datos$Play)
+test_result_Possum1 <- wilcox.test(datos$Possum_VisR ~ datos$Play)
+results <- rbind(results, data.frame(Variable = "Possum_VisR-Play", p_value = test_result_Possum1$p.value))
+
+##Seating
+test_result_Possum2 <- wilcox.test(datos$Possum_VisR ~ datos$Seating)
+results <- rbind(results, data.frame(Variable = "Possum_VisR-Seating", p_value = test_result_Possum2$p.value))
+
+# Variable Skunk
+##Play
+test_result_Skunk1 <- wilcox.test(datos$Skunk_VisR ~ datos$Play)
+results <- rbind(results, data.frame(Variable = "Skunk_VisR-Play", p_value = test_result_Raccon1$p.value))
+
+##Seating
+test_result_Skunk2 <- wilcox.test(datos$Skunk_VisR ~ datos$Seating)
+results <- rbind(results, data.frame(Variable = "Skunk_VisR-Seating", p_value = test_result_Raccon2$p.value))
+
+# Variable Squirrel
+##Play
+test_result_Squirrel1 <- wilcox.test(datos$Squirrel_VisR ~ datos$Play)
+results <- rbind(results, data.frame(Variable = "Squirrel_VisR-Play", p_value = test_result_Squirrel1$p.value))
+
+##Seating
+test_result_Squirrel2 <- wilcox.test(datos$Squirrel_VisR ~ datos$Seating)
+results <- rbind(results, data.frame(Variable = "Squirrel_VisR-Seating", p_value = test_result_Squirrel2$p.value))
+# Procesa los resultados para incluir significancia
+results <- results %>%
+  mutate(Significance = case_when(
+    p_value < 0.001 ~ "***",
+    p_value < 0.01 ~ "**",
+    p_value < 0.05 ~ "*",
+    TRUE ~ ""
+  ))
+
+
+# Formatea los p-valores a cuatro decimales
+results$p_value <- formatC(results$p_value, format = "f", digits = 4)
+
+# Formatea la tabla para un documento Word
+results %>%
+  kable("html", col.names = c("Variable", "p_value", "Significance"), align = "c") %>%
+  kable_styling(full_width = FALSE, position = "left", bootstrap_options = c("striped", "hover", "condensed")) %>%
+  column_spec(1, color = "black") %>%
+  column_spec(2, color = "black") %>%
+  column_spec(3, bold = TRUE, color = "red") %>%
+  row_spec(which(results$Significance != ""), bold = TRUE) %>%
+  row_spec(0, bold = TRUE, color = "black")
+
+
+
+```
 ## ApproxM-Log.brush/ Food shelter/Lawn/ Vegetable/ Birdfeeder/
 
 Trashcan/Compost.bin/Wood ###ApproxM-Log.brush:
@@ -851,57 +1304,7 @@ highcan/Prop.bare/Prop.imperv/Prop.grass/Prop.shrub/Prop.lowcan
   # Visualize the correlation matrix without the diagonal elements
   corrplot(cor_matrix, method = "circle", na.label = " ")
 ```
-
-## Nºtubes-Animales
-
-```{R tubes}
- # Extract numeric variables related to animals
-  Animals_tubes_vars <- c("Deer_VisR", "Raccon_VisR", "Woodchuck_VisR", 
-         "Cat_VisR", "Possum_VisR", "Skunk_VisR", "Squirrel_VisR", "Number.tubes","Number.tubes.with.hair", "Number.tubes.peromyscus",	"Number.tubes.insectivore","Number.tubes.vole", "Number.tubes.raccoon", "Number.tubes.chipmunk")
-  
-  # Compute the Spearman correlation matrix with significance
-  library(Hmisc)
-  cor_res <- rcorr(as.matrix(datos[Animals_tubes_vars]), type = "spearman")
-  
-  # Extract the correlation coefficients and p-values
-  cor_matrix <- cor_res$r
-  p_matrix <- cor_res$P
-  
-  # Set the diagonal elements of both matrices to NA
-  diag(cor_matrix) <- NA
-  diag(p_matrix) <- NA
-  
-  # Format the matrices with three decimal places and no scientific notation
-  formatted_cor_matrix <- formatC(cor_matrix, format = "f", digits = 3)
-  formatted_p_matrix <- formatC(p_matrix, format = "f", digits = 3)
-  
-    # Convert matrices to data frames for better kable formatting
-  cor_df <- as.data.frame(formatted_cor_matrix)
-  p_df <- as.data.frame(formatted_p_matrix)
-  
-  # Create row and column names for clarity
-  rownames(cor_df) <- colnames(cor_df) <- Animals_tubes_vars
-  rownames(p_df) <- colnames(p_df) <- Animals_tubes_vars
-  
-  # Print the correlation matrix using kable
-  kable(cor_df, caption = "Spearman Correlation Matrix", align = "c") %>%
-    kable_styling(full_width = FALSE, position = "left", 
-                  bootstrap_options = c("striped", "hover", "condensed")) %>%
-        column_spec(1:ncol(cor_df), color = "black") %>%  
-    row_spec(0, color = "black", bold = TRUE)
-  
-  # Print the p-value matrix using kable
-  kable(p_df, caption = "P-Value Matrix for Spearman Correlations", align = "c") %>%
-    kable_styling(full_width = FALSE, position = "left", 
-                  bootstrap_options = c("striped", "hover", "condensed")) %>%
-    column_spec(1:ncol(cor_df), color = "black") %>%  
-    row_spec(0, color = "black", bold = TRUE)        
-  
-
-  # Visualize the correlation matrix without the diagonal elements
-  corrplot(cor_matrix, method = "circle", na.label = " ")
-```
-##Prop-Nºtubes
+##Nºtubes-Prop
 ```{R N_tubes}
 
 # Extract numeric variables related to animals
@@ -949,15 +1352,289 @@ highcan/Prop.bare/Prop.imperv/Prop.grass/Prop.shrub/Prop.lowcan
   # Visualize the correlation matrix without the diagonal elements
   corrplot(cor_matrix, method = "circle", na.label = " ")
 ```
-##Type_edge-Animals
+
+##Nºtubes-Log.brush
+```{R N_tubes}
+
+# Variable Nº tubes
+
+results <- data.frame(Variable = character(), p_value = numeric(), stringsAsFactors = FALSE)
+test_result_log.brush <- wilcox.test(datos$Number.tubes ~ datos$Log.brush, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Number.tubes-Log.brush", p_value = test_result_log.brush$p.value))
+
+
+test_result_Food.shelter <- wilcox.test(datos$Number.tubes ~ datos$Food.shelter, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Number.tubes-Food.shelter", p_value = test_result_Food.shelter$p.value))
+
+test_result_Lawn <- wilcox.test(datos$Number.tubes ~ datos$Lawn, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Number.tubes-Lawn", p_value = test_result_log.brush$p.value))
+
+test_result_Vegetable <- wilcox.test(datos$Number.tubes ~ datos$Vegetable, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Number.tubes-Vegetable", p_value = test_result_Vegetable$p.value))
+
+test_result_Birdfeeder <- wilcox.test(datos$Number.tubes ~ datos$Birdfeeder, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Number.tubes-Birdfeeder", p_value = test_result_Birdfeeder$p.value))
+
+test_result_Trashcan <- wilcox.test(datos$Number.tubes ~ datos$Trashcan, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Number.tubes-Trashcan", p_value = test_result_Trashcan$p.value))
+
+test_result_Compost.bin <- wilcox.test(datos$Woodchuck_VisR ~ datos$Compost.bin, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Woodchuck-Compost.bin", p_value = test_result_Compost.bin$p.value))
+
+test_result_Wood <- wilcox.test(datos$Number.tubes ~ datos$Wood, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Number.tubes-Trashcan", p_value = test_result_Wood$p.value))
+
+# Variable Number.tubes w/hair
+
+test_result_log.brush <- wilcox.test(datos$Number.tubes.with.hair ~ datos$Log.brush, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Number.tubes.with.hair-Log.brush", p_value = test_result_log.brush$p.value))
+
+
+test_result_Food.shelter <- wilcox.test(datos$Number.tubes.with.hair ~ datos$Food.shelter, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Number.tubes.with.hair-Food.shelter", p_value = test_result_Food.shelter$p.value))
+
+test_result_Lawn <- wilcox.test(datos$Number.tubes.with.hair ~ datos$Lawn, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Number.tubes.with.hair-Lawn", p_value = test_result_log.brush$p.value))
+
+test_result_Vegetable <- wilcox.test(datos$Deer_VisR ~ datos$Vegetable, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Deer_VisR-Vegetable", p_value = test_result_Vegetable$p.value))
+
+test_result_Birdfeeder <- wilcox.test(datos$Number.tubes.with.hair ~ datos$Birdfeeder, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Number.tubes.with.hair-Birdfeeder", p_value = test_result_Birdfeeder$p.value))
+
+test_result_Trashcan <- wilcox.test(datos$Deer_VisR ~ datos$Trashcan, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Deer_VisR-Trashcan", p_value = test_result_Trashcan$p.value))
+
+test_result_Compost.bin <- wilcox.test(datos$Number.tubes.with.hair ~ datos$Compost.bin, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Number.tubes.with.hair-Compost.bin", p_value = test_result_Compost.bin$p.value))
+
+test_result_Wood <- wilcox.test(datos$Number.tubes.with.hair ~ datos$Wood, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Number.tubes.with.hair-Trashcan", p_value = test_result_Wood$p.value))
+
+# Variable Number. tubes. raccoon
+
+test_result_log.brush <- wilcox.test(datos$Number.tubes.raccoon ~ datos$Log.brush, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Number.tubes.raccoon-Log.brush", p_value = test_result_log.brush$p.value))
+
+
+test_result_Food.shelter <- wilcox.test(datos$Number.tubes.raccoon ~ datos$Food.shelter, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Number.tubes.raccoon-Food.shelter", p_value = test_result_Food.shelter$p.value))
+
+test_result_Lawn <- wilcox.test(datos$Number.tubes.raccoon ~ datos$Lawn, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Number.tubes.raccoon-Lawn", p_value = test_result_log.brush$p.value))
+
+test_result_Vegetable <- wilcox.test(datos$Number.tubes.raccoon ~ datos$Vegetable, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Number.tubes.raccoon-Vegetable", p_value = test_result_Vegetable$p.value))
+
+test_result_Birdfeeder <- wilcox.test(datos$Number.tubes.raccoon ~ datos$Birdfeeder, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Number.tubes.raccoon-Birdfeeder", p_value = test_result_Birdfeeder$p.value))
+
+test_result_Trashcan <- wilcox.test(datos$Number.tubes.raccoon ~ datos$Trashcan, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Number.tubes.raccoon-Trashcan", p_value = test_result_Trashcan$p.value))
+
+test_result_Compost.bin <- wilcox.test(datos$Number.tubes.raccoon ~ datos$Compost.bin, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Number.tubes.raccoon-Compost.bin", p_value = test_result_Compost.bin$p.value))
+
+test_result_Wood <- wilcox.test(datos$Number.tubes.raccoon ~ datos$Wood, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Number.tubes.raccoon-Trashcan", p_value = test_result_Wood$p.value))
+
+# Variable Number tubes chipmunk
+
+test_result_log.brush <- wilcox.test(datos$Number.tubes.chipmunk ~ datos$Log.brush, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Cat_VisR-Log.brush", p_value = test_result_log.brush$p.value))
+
+
+test_result_Food.shelter <- wilcox.test(datos$Number.tubes.chipmunk ~ datos$Food.shelter, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Number.tubes.chipmunk-Food.shelter", p_value = test_result_Food.shelter$p.value))
+
+test_result_Lawn <- wilcox.test(datos$Number.tubes.chipmunk ~ datos$Lawn, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Number.tubes.chipmunk-Lawn", p_value = test_result_log.brush$p.value))
+
+test_result_Vegetable <- wilcox.test(datos$Number.tubes.chipmunk ~ datos$Vegetable, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Number.tubes.chipmunk-Vegetable", p_value = test_result_Vegetable$p.value))
+
+test_result_Birdfeeder <- wilcox.test(datos$Cat_VisR ~ datos$Birdfeeder, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Cat_VisR-Birdfeeder", p_value = test_result_Birdfeeder$p.value))
+
+test_result_Trashcan <- wilcox.test(datos$Number.tubes.chipmunk ~ datos$Trashcan, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Number.tubes.chipmunk-Trashcan", p_value = test_result_Trashcan$p.value))
+
+test_result_Compost.bin <- wilcox.test(datos$Number.tubes.chipmunk ~ datos$Compost.bin, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Number.tubes.chipmunk-Compost.bin", p_value = test_result_Compost.bin$p.value))
+
+test_result_Wood <- wilcox.test(datos$Number.tubes.chipmunk ~ datos$Wood, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Number.tubes.chipmunk-Trashcan", p_value = test_result_Wood$p.value))
+
+# Variable Number tubes insectivore
+
+test_result_log.brush <- wilcox.test(datos$Number.tubes.insectivore ~ datos$Log.brush, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Number.tubes.insectivore-Log.brush", p_value = test_result_log.brush$p.value))
+
+
+test_result_Food.shelter <- wilcox.test(datos$Number.tubes.insectivore ~ datos$Food.shelter, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Number.tubes.insectivore-Food.shelter", p_value = test_result_Food.shelter$p.value))
+
+test_result_Lawn <- wilcox.test(datos$Number.tubes.insectivore ~ datos$Lawn, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Number.tubes.insectivore-Lawn", p_value = test_result_log.brush$p.value))
+
+test_result_Vegetable <- wilcox.test(datos$Number.tubes.insectivore ~ datos$Vegetable, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Number.tubes.insectivore-Vegetable", p_value = test_result_Vegetable$p.value))
+
+test_result_Birdfeeder <- wilcox.test(datos$Number.tubes.insectivore ~ datos$Birdfeeder, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Number.tubes.insectivore-Birdfeeder", p_value = test_result_Birdfeeder$p.value))
+
+test_result_Trashcan <- wilcox.test(datos$Number.tubes.insectivore ~ datos$Trashcan, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Number.tubes.insectivore-Trashcan", p_value = test_result_Trashcan$p.value))
+
+test_result_Compost.bin <- wilcox.test(datos$Number.tubes.insectivore ~ datos$Compost.bin, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Number.tubes.insectivore-Compost.bin", p_value = test_result_Compost.bin$p.value))
+
+test_result_Wood <- wilcox.test(datos$Possum_VisR ~ datos$Wood, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Possum_VisR-Trashcan", p_value = test_result_Wood$p.value))
+
+# Variable Number tubes vole
+
+test_result_log.brush <- wilcox.test(datos$Number.tubes.vole ~ datos$Log.brush, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Number.tubes.vole-Log.brush", p_value = test_result_log.brush$p.value))
+
+
+test_result_Food.shelter <- wilcox.test(datos$Number.tubes.vole ~ datos$Food.shelter, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Number.tubes.vole-Food.shelter", p_value = test_result_Food.shelter$p.value))
+
+test_result_Lawn <- wilcox.test(datos$Number.tubes.vole ~ datos$Lawn, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Number.tubes.vole-Lawn", p_value = test_result_log.brush$p.value))
+
+test_result_Vegetable <- wilcox.test(datos$Number.tubes.vole ~ datos$Vegetable, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Number.tubes.vole-Vegetable", p_value = test_result_Vegetable$p.value))
+
+test_result_Birdfeeder <- wilcox.test(datos$Number.tubes.vole ~ datos$Birdfeeder, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Number.tubes.vole-Birdfeeder", p_value = test_result_Birdfeeder$p.value))
+
+test_result_Trashcan <- wilcox.test(datos$Number.tubes.vole ~ datos$Trashcan, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Number.tubes.vole-Trashcan", p_value = test_result_Trashcan$p.value))
+
+test_result_Compost.bin <- wilcox.test(datos$Number.tubes.vole ~ datos$Compost.bin, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Number.tubes.vole-Compost.bin", p_value = test_result_Compost.bin$p.value))
+
+test_result_Wood <- wilcox.test(datos$Number.tubes.vole ~ datos$Wood, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Number.tubes.vole-Trashcan", p_value = test_result_Wood$p.value))
+
+# Variable Number tubes peromyscus
+
+test_result_log.brush <- wilcox.test(datos$Number.tubes.peromyscus ~ datos$Log.brush, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Number.tubes.peromyscus-Log.brush", p_value = test_result_log.brush$p.value))
+
+
+test_result_Food.shelter <- wilcox.test(datos$Number.tubes.peromyscus ~ datos$Food.shelter, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Number.tubes.peromyscus-Food.shelter", p_value = test_result_Food.shelter$p.value))
+
+test_result_Lawn <- wilcox.test(datos$Number.tubes.peromyscus ~ datos$Lawn, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Number.tubes.peromyscus-Lawn", p_value = test_result_log.brush$p.value))
+
+test_result_Vegetable <- wilcox.test(datos$Number.tubes.peromyscus ~ datos$Vegetable, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Number.tubes.peromyscus-Vegetable", p_value = test_result_Vegetable$p.value))
+
+test_result_Birdfeeder <- wilcox.test(datos$Number.tubes.peromyscus ~ datos$Birdfeeder, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Number.tubes.peromyscus-Birdfeeder", p_value = test_result_Birdfeeder$p.value))
+
+test_result_Trashcan <- wilcox.test(datos$Number.tubes.peromyscus ~ datos$Trashcan, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Number.tubes.peromyscus-Trashcan", p_value = test_result_Trashcan$p.value))
+
+test_result_Compost.bin <- wilcox.test(datos$Number.tubes.peromyscus ~ datos$Compost.bin, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Number.tubes.peromyscus-Compost.bin", p_value = test_result_Compost.bin$p.value))
+
+test_result_Wood <- wilcox.test(datos$Number.tubes.peromyscus ~ datos$Wood, exact=FALSE)
+results <- rbind(results, data.frame(Variable = "Number.tubes.peromyscus-Trashcan", p_value = test_result_Wood$p.value))
+# Procesa los resultados para incluir significancia
+results <- results %>%
+  mutate(Significance = case_when(
+    p_value < 0.001 ~ "***",
+    p_value < 0.01 ~ "**",
+    p_value < 0.05 ~ "*",
+    TRUE ~ ""
+  ))
+
+# Formatea los p-valores a cuatro decimales
+results$p_value <- formatC(results$p_value, format = "f", digits = 4)
+
+# Formatea la tabla para un documento Word
+results %>%
+  kable("html", col.names = c("Variable", "p_value", "Significance"), align = "c") %>%
+  kable_styling(full_width = FALSE, position = "left", bootstrap_options = c("striped", "hover", "condensed")) %>%
+  column_spec(1, color = "black") %>%
+  column_spec(2, color = "black") %>%
+  column_spec(3, bold = TRUE, color = "red") %>%
+  row_spec(which(results$Significance != ""), bold = TRUE) %>%
+  row_spec(0, bold = TRUE, color = "black")
+
+
+
+
+```
+
+## Nºtubes-ApproxM...
+
+```{R animal}
+# Extract numeric variables related to animals
+animal_ApproxM_vars <- c("Number.tubes","Number.tubes.with.hair", "Number.tubes.peromyscus",	"Number.tubes.insectivore","Number.tubes.vole", "Number.tubes.raccoon", "Number.tubes.chipmunk", "ApproxMOrnamentals",	"ApproxMherbaceous", "ApproxMnonherbaceous", "ApproxMweeds", "ApproxMevergreen", "ApproxMgrass")
+  
+  # Compute the Spearman correlation matrix with significance
+  library(Hmisc)
+  cor_res <- rcorr(as.matrix(datos[animal_ApproxM_vars]), type = "spearman")
+  
+  # Extract the correlation coefficients and p-values
+  cor_matrix <- cor_res$r
+  p_matrix <- cor_res$P
+  
+  # Set the diagonal elements of both matrices to NA
+  diag(cor_matrix) <- NA
+  diag(p_matrix) <- NA
+  
+  # Format the matrices with three decimal places and no scientific notation
+  formatted_cor_matrix <- formatC(cor_matrix, format = "f", digits = 3)
+  formatted_p_matrix <- formatC(p_matrix, format = "f", digits = 3)
+  
+    # Convert matrices to data frames for better kable formatting
+  cor_df <- as.data.frame(formatted_cor_matrix)
+  p_df <- as.data.frame(formatted_p_matrix)
+  
+  # Create row and column names for clarity
+  rownames(cor_df) <- colnames(cor_df) <- animal_ApproxM_vars
+  rownames(p_df) <- colnames(p_df) <- animal_ApproxM_vars
+  
+  # Print the correlation matrix using kable
+  kable(cor_df, caption = "Spearman Correlation Matrix", align = "c") %>%
+    kable_styling(full_width = FALSE, position = "left", 
+                  bootstrap_options = c("striped", "hover", "condensed")) %>%
+        column_spec(1:ncol(cor_df), color = "black") %>%  
+    row_spec(0, color = "black", bold = TRUE)
+  
+  # Print the p-value matrix using kable
+  kable(p_df, caption = "P-Value Matrix for Spearman Correlations", align = "c") %>%
+    kable_styling(full_width = FALSE, position = "left", 
+                  bootstrap_options = c("striped", "hover", "condensed")) %>%
+    column_spec(1:ncol(cor_df), color = "black") %>%  
+    row_spec(0, color = "black", bold = TRUE)        
+  
+
+  # Visualize the correlation matrix without the diagonal elements
+  corrplot(cor_matrix, method = "circle", na.label = " ")
+  # Print the p-value matrix using kable
+  kable(p_df, caption = "P-Value Matrix for Spearman Correlations", align = "c") %>%
+    kable_styling(full_width = FALSE, position = "left", 
+                  bootstrap_options = c("striped", "hover", "condensed")) %>%
+    column_spec(1:ncol(cor_df), color = "black") %>%  
+    row_spec(0, color = "black", bold = TRUE)   
+```
+##Nº tubes-Type_edge
 ```{R edge}
-kruskal.test(datos$type_edge, datos$Deer_VisR)
-kruskal.test(datos$type_edge, datos$Skunk_VisR)
-kruskal.test(datos$type_edge, datos$Raccon_VisR)
-kruskal.test(datos$type_edge, datos$Possum_VisR)
-kruskal.test(datos$type_edge, datos$Cat_VisR)
-kruskal.test(datos$type_edge, datos$Squirrel_VisR)
-kruskal.test(datos$type_edge, datos$Woodchuck_VisR)
+kruskal.test(datos$Number.tubes, datos$Deer_VisR)
+kruskal.test(datos$Number.tubes.with.hair, datos$Skunk_VisR)
+kruskal.test(datos$Number.tubes.peromyscus, datos$Raccon_VisR)
+kruskal.test(datos$Number.tubes.vole, datos$Possum_VisR)
+kruskal.test(datos$Number.tubes.raccoon, datos$Cat_VisR)
+kruskal.test(datos$Number.tubes.chipmunk, datos$Squirrel_VisR)
+
 
 #No entiendo este código que me ha escrito chat gpt para estas variables:
 # Ejecutar las pruebas de Kruskal-Wallis
@@ -968,6 +1645,8 @@ kruskal_possum <- kruskal.test(datos$type_edge, datos$Possum_VisR)$p.value
 kruskal_cat <- kruskal.test(datos$type_edge, datos$Cat_VisR)$p.value
 kruskal_squirrel <- kruskal.test(datos$type_edge, datos$Squirrel_VisR)$p.value
 kruskal_woodchuck <- kruskal.test(datos$type_edge, datos$Woodchuck_VisR)$p.value
+
+
 
 # Crear la tabla con los resultados
 p_values_table <- data.frame(
@@ -981,22 +1660,4 @@ p_values_table <- data.frame(
 
 # Imprimir la tabla
 print(p_values_table)
-```
-##Play/seating-Animal
-```{R seating}
-# Variable Deer
-##Play
-test_result_Deer <- wilcox.test(datos$Play ~ datos$Deer_VisR)
-results <- rbind(results, data.frame(Variable = "Deer_VisR", p_value = test_result_Deer$p.value))
-##Seating
-test_result_Deer <- wilcox.test(datos$Seating ~ datos$Deer_VisR)
-results <- rbind(results, data.frame(Variable = "Deer_VisR", p_value = test_result_Deer$p.value))
-
-# Variable Raccoon
-##Play
-test_result_Raccoon <- wilcox.test(datos$Play ~ datos$Raccoon_VisR)
-results <- rbind(results, data.frame(Variable = "Raccoon_VisR", p_value = test_result_Deer$p.value))
-##Seating
-test_result_Raccoon <- wilcox.test(datos$Raccoon_VisR ~ datos$Seating)
-results <- rbind(results, data.frame(Variable = "Raccoon_VisR", p_value = test_result_Raccoon$p.value))
 ```
