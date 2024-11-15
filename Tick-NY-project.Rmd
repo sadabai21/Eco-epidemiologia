@@ -27,6 +27,7 @@ library(MuMIn)
 library(Hmisc)
 library(scales)
 library(tidyverse)
+library(dagitty)
 
 options(scipen = 999)
 
@@ -95,7 +96,9 @@ contingency_results <- data.frame(Variable = character(),
                                   No_Infestation = numeric(),
                                   Yes_Infestation = numeric(),
                                   stringsAsFactors = FALSE)
-datos$Fence <- if_else(datos$Fence == "2", "3", datos$Fence)
+datos$type_edge2 <- ifelse(datos$type_edge == "2", "3", datos$type_edge)
+datos$type_edge2<-ifelse(datos$type_edge2=="4", NA, datos$type_edge2)
+table(datos$type_edge,datos$type_edge2)
 for (var in categorical_variables) {
   # Create a contingency table
   contingency_table <- table(datos[[var]], datos$Ticks_label)
@@ -176,7 +179,8 @@ fisher_results %>%
   row_spec(0, bold = TRUE, color = "black") 
 ```
 
-## Variables numéricas: 
+## Variables numéricas:
+
 ### Distribución (diagrama violín) y presentación en formato tabla:
 
 ```{R Var_numericas 1}
@@ -477,7 +481,9 @@ animal_ApproxM_vars <- c("Woodchuck_VisR", "Deer_VisR",	"Raccon_VisR",	"Cat_VisR
     column_spec(1:ncol(cor_df), color = "black") %>%  
     row_spec(0, color = "black", bold = TRUE)   
 ```
+
 ##Animales-Prop
+
 ```{R animal}
 # Extract numeric variables related to animals
 animal_ApproxM_vars2 <- c("Woodchuck_VisR", "Deer_VisR",	"Raccon_VisR",	"Cat_VisR",	"Possum_VisR",	"Skunk_VisR", "Squirrel_VisR", "prop.shrub", "prop.lowcan", "prop.highcan", "prop.bare", "prop.imperv", "prop.grass")
@@ -530,6 +536,7 @@ animal_ApproxM_vars2 <- c("Woodchuck_VisR", "Deer_VisR",	"Raccon_VisR",	"Cat_Vis
     column_spec(1:ncol(cor_df), color = "black") %>%  
     row_spec(0, color = "black", bold = TRUE)   
 ```
+
 ## Animales-Nº tubes
 
 ```{R tubes}
@@ -579,7 +586,9 @@ animal_ApproxM_vars2 <- c("Woodchuck_VisR", "Deer_VisR",	"Raccon_VisR",	"Cat_Vis
   # Visualize the correlation matrix without the diagonal elements
   corrplot(cor_matrix, method = "circle", na.label = " ")
 ```
+
 ##Animales-Log.brush/Food.shelter/Lawn/Vegetable/Birdfeeder/Trashcan/Compost.bin/Wood
+
 ```{R  Animales-trash}
 # Variable Woodchuck
 
@@ -798,7 +807,9 @@ results %>%
 
 
 ```
+
 ##Animals-Type_edge
+
 ```{R edge}
 kruskal.test(datos$type_edge, datos$Deer_VisR)
 kruskal.test(datos$type_edge, datos$Skunk_VisR)
@@ -834,7 +845,9 @@ p_values_table <- data.frame(
 # Imprimir la tabla
 print(p_values_table)
 ```
+
 ##Animal- Play/seating
+
 ```{R seating}
 # Variable Deer
 results <- data.frame(Variable = character(), p_value = numeric(), stringsAsFactors = FALSE)
@@ -930,13 +943,14 @@ results %>%
 
 
 ```
+
 ## ApproxM-Log.brush/ Food shelter/Lawn/ Vegetable/ Birdfeeder/
 
 Trashcan/Compost.bin/Wood ###ApproxM-Log.brush:
 
 ```{R  Variable Approx_Log}
 Numeric_plants<- c("ApproxMOrnamentals", "ApproxMherbaceous", "ApproxMnonherbaceous", "ApproxMweeds", "ApproxMevergreen", "ApproxMgrass")
-
+Log.brush <-as.factor(datos$Log.brush)
 # Initialize an empty data frame to store results
 results <- data.frame(Variable = character(),
                       p_value = numeric(),
@@ -969,6 +983,31 @@ results %>%
   column_spec(3, bold = TRUE, color = "red") %>%
   row_spec(which(results$Significance != ""), bold = TRUE) %>%
   row_spec(0, bold = TRUE, color = "black")
+
+create_violin_plot <- function(data, var_num, target_var) {
+ 
+   ggplot(data, aes_string(x = target_var, y = var_num, fill = target_var)) +
+    geom_violin(trim = FALSE) +
+    geom_jitter(width = 0.2, size = 0.6, alpha = 0.6) +
+    labs(y = var_num, fill = target_var, x = target_var) +
+    theme_minimal() +
+    theme(
+      legend.position = "none",
+      plot.title = element_text(size = 8),
+      axis.title.x = element_text(size = 8),
+      axis.title.y = element_text(size = 8),
+      axis.text.x = element_text(size = 7),
+      axis.text.y = element_text(size = 7)
+    ) +
+    ggtitle(var_num)
+}
+num_plots2 <- list()
+for (var in Numeric_plants) {
+  num_plots2[[var]] <- create_violin_plot(datos, var, as.factor("Log.brush"))
+}
+
+# Arrange the plots in a 4x4 grid
+grid.arrange(grobs = num_plots2, ncol = 5, nrow = 3)
 ```
 
 ### ApproxM-Food shelter:
@@ -1304,7 +1343,9 @@ highcan/Prop.bare/Prop.imperv/Prop.grass/Prop.shrub/Prop.lowcan
   # Visualize the correlation matrix without the diagonal elements
   corrplot(cor_matrix, method = "circle", na.label = " ")
 ```
+
 ##Nºtubes-Prop
+
 ```{R N_tubes}
 
 # Extract numeric variables related to animals
@@ -1354,6 +1395,7 @@ highcan/Prop.bare/Prop.imperv/Prop.grass/Prop.shrub/Prop.lowcan
 ```
 
 ##Nºtubes-Log.brush
+
 ```{R N_tubes}
 
 # Variable Nº tubes
@@ -1626,7 +1668,9 @@ animal_ApproxM_vars <- c("Number.tubes","Number.tubes.with.hair", "Number.tubes.
     column_spec(1:ncol(cor_df), color = "black") %>%  
     row_spec(0, color = "black", bold = TRUE)   
 ```
+
 ##Nº tubes-Type_edge
+
 ```{R edge}
 kruskal.test(datos$Number.tubes, datos$Deer_VisR)
 kruskal.test(datos$Number.tubes.with.hair, datos$Skunk_VisR)
@@ -1660,4 +1704,118 @@ p_values_table <- data.frame(
 
 # Imprimir la tabla
 print(p_values_table)
+```
+
+#Interpretación de resultados:
+
+0.- La presencia de tick está relacionada positivamente con la presencia de animales pero también con la presencia de maleza (weeds) y de peromyscus.
+
+1.- La presencia de maleza (weeds) es mayor cuanto más hierba haya (grass) y menos cuanto más highcan haya. 
+
+2.- A más proporción de lowcan menos plantas herbáceas hay.
+
+3.- Cuanta menos hierba (grass), mayor cantidad de plantas ornamentales hay.
+
+4.- La presencia de cats, raccoons y woodchucks es menor si hay hierba (weeds).
+
+5.- A mayor proporción de suelo limpio (imperv), mayor cantidad de raccoons, woodchuchs y squirrels.
+
+6.- Hay más woodchucks cuanta mayor cantidad de evergreen y suelo limpio haya.
+
+7.- Cuanta más proporción de low can haya menos ardillas hay pero si el suelo está limpio hay más.
+
+```{R mathematical_model}
+
+fitglm.null <- glm(Ticks_label ~ 1, family = binomial(logit), data = datos)
+summary(fitglm.null)
+fitglm <- glm(Ticks_label ~ Raccon_VisR + Deer_VisR + Woodchuck_VisR + 
+         Cat_VisR + Possum_VisR + Skunk_VisR + Squirrel_VisR + Number.tubes.peromyscus + ApproxMweeds + Number.tubes.raccoon + prop.imperv, family = binomial(logit), data = datos)
+
+summary(fitglm)
+
+ci<-confint(fitglm)
+pval<-as.numeric(format(round((coef(summary(fitglm))[,'Pr(>|z|)']),2), scientific = FALSE))
+table.coef <- cbind(exp(cbind(OR=coef(fitglm),ci)), pval)
+print(table.coef, digits = 4)
+write.table(table.coef, "clipboard", sep="\t")
+pR2 <- 1- fitglm$deviance / fitglm$null.deviance
+pR2  
+
+#Ahora las distribuciones gausianas:
+##Cat
+
+fitglm.null <- glm(Cat_VisR ~ 1, family = gaussian, data = datos)
+summary(fitglm.null)
+fitglm <- glm(Cat_VisR ~ Log.brush + Vegetable + ApproxMweeds, 
+         family = binomial(logit), data = datos)
+
+summary(fitglm)
+ci<-confint(fitglm)
+pval<-as.numeric(format(round((coef(summary(fitglm))[,'Pr(>|z|)']),2), scientific = FALSE))
+table.coef <- cbind(exp(cbind(OR=coef(fitglm),ci)), pval)
+print(table.coef, digits = 4)
+write.table(table.coef, "clipboard", sep="\t")
+pR2 <- 1- fitglm$deviance / fitglm$null.deviance
+pR2 
+
+##Raccoon
+fitglm.null <- glm(Raccon_VisR ~ 1, family = gaussian, data = datos)
+summary(fitglm.null)
+fitglm <- glm(Raccon_VisR ~ prop.imperv + Lawn + ApproxMweeds + Log.brush, 
+         family = binomial(logit), data = datos)
+
+summary(fitglm)
+ci<-confint(fitglm)
+pval<-as.numeric(format(round((coef(summary(fitglm))[,'Pr(>|z|)']),2), scientific = FALSE))
+table.coef <- cbind(exp(cbind(OR=coef(fitglm),ci)), pval)
+print(table.coef, digits = 4)
+write.table(table.coef, "clipboard", sep="\t")
+pR2 <- 1- fitglm$deviance / fitglm$null.deviance
+pR2 
+
+##Deer
+
+fitglm.null <- glm(Deer_VisR ~ 1, family = gaussian, data = datos)
+summary(fitglm.null)
+fitglm <- glm(Deer_VisR ~ Log.brush + Lawn, 
+         family = binomial(logit), data = datos)
+
+summary(fitglm)
+ci<-confint(fitglm)
+pval<-as.numeric(format(round((coef(summary(fitglm))[,'Pr(>|z|)']),2), scientific = FALSE))
+table.coef <- cbind(exp(cbind(OR=coef(fitglm),ci)), pval)
+print(table.coef, digits = 4)
+write.table(table.coef, "clipboard", sep="\t")
+pR2 <- 1- fitglm$deviance / fitglm$null.deviance
+pR2 
+
+##Woodchuck
+fitglm.null <- glm(Woodchuck_VisR ~ 1, family = gaussian, data = datos)
+summary(fitglm.null)
+fitglm <- glm(Woodchuck_VisR ~ ApproxMevergreen + prop.imperv + ApproxMweeds, 
+         family = binomial(logit), data = datos)
+
+summary(fitglm)
+ci<-confint(fitglm)
+pval<-as.numeric(format(round((coef(summary(fitglm))[,'Pr(>|z|)']),2), scientific = FALSE))
+table.coef <- cbind(exp(cbind(OR=coef(fitglm),ci)), pval)
+print(table.coef, digits = 4)
+write.table(table.coef, "clipboard", sep="\t")
+pR2 <- 1- fitglm$deviance / fitglm$null.deviance
+pR2 
+
+##Squirrel
+fitglm.null <- glm(Squirrel_VisR ~ 1, family = gaussian, data = datos)
+summary(fitglm.null)
+fitglm <- glm(Squirrel_VisR ~ Log.brush + Lawn + prop.imperv + prop.lowcan, 
+         family = binomial(logit), data = datos)
+
+summary(fitglm)
+ci<-confint(fitglm)
+pval<-as.numeric(format(round((coef(summary(fitglm))[,'Pr(>|z|)']),2), scientific = FALSE))
+table.coef <- cbind(exp(cbind(OR=coef(fitglm),ci)), pval)
+print(table.coef, digits = 4)
+write.table(table.coef, "clipboard", sep="\t")
+pR2 <- 1- fitglm$deviance / fitglm$null.deviance
+pR2 
 ```
