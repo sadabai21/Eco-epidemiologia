@@ -35,7 +35,9 @@ datos<- read.csv("C:/Users/ipsad/OneDrive/Escritorio/Eco-epidemiology/SI_yard.cs
 
 ```
 
-## Pre-process data
+## Pre-process data:
+
+Definimos las variables categóricas y factorizamos.
 
 ```{R  process}
 
@@ -47,15 +49,15 @@ datos[cat_vars] <- lapply(datos[cat_vars], as.factor)
 
 # Análisis descriptivo:
 
-## Variables categóricas: variables against the
-
-presence of ticks
+## Variables categóricas: variables against the presence of ticks
 
 ```{R Filter_data__Y}
 #Dentro del nivel de infectados o no factorizamos estableciendo el 0 para no infectados y el 1 para infectados.
+
 datos$Ticks_label <- factor(datos$Ticks, levels = c("N", "Y"), labels = c("NO", "YES"))
 
 #Seleccionamos las variables categóricas que nos interesan:
+
 categorical_variables <- setdiff(cat_vars,c("House.ID", "Address","Park","Neighborhood", "Ticks"))
 
 #Representamos los datos en función de si están o no infectados
@@ -79,9 +81,11 @@ infection_bar_plot <-function(datos, categorical_variables, target_var) {
 
 
 #Creamos una lista que recoja todas las gráficas de cada variable:
+
 cat_plots <-list()
 
 #Creamos el futloop:
+
 for (var in categorical_variables) {
   cat_plots[[var]] <- infection_bar_plot(datos, var, "Ticks_label")
 }
@@ -100,7 +104,8 @@ datos$type_edge2 <- ifelse(datos$type_edge == "2", "3", datos$type_edge)
 datos$type_edge2<-ifelse(datos$type_edge2=="4", NA, datos$type_edge2)
 table(datos$type_edge,datos$type_edge2)
 for (var in categorical_variables) {
-  # Create a contingency table
+ 
+   # Create a contingency table
   contingency_table <- table(datos[[var]], datos$Ticks_label)
   
   # Calculate proportions
@@ -138,26 +143,33 @@ contingency_results %>%
 
 ```{R Fisher test}
 # Initialize an empty data frame to store results
+
 fisher_results <- data.frame(Variable = character(),
                              p_value = numeric(),
                              stringsAsFactors = FALSE)
 
 # Ejecutar el test exacto de Fisher para cada variable categórica
+
 for (var in categorical_variables) {
-  # Crear la tabla de contingencia
+  
+# Crear la tabla de contingencia
+  
   contingency_table <- table(datos[[var]], datos$Ticks_label)
   
-  # Verificar si la tabla es de tamaño 2x2
+# Verificar si la tabla es de tamaño 2x2
+  
   if (nrow(contingency_table) == 2 && ncol(contingency_table) == 2) {
     # Si es una tabla 2x2, realizar el test
     test_result <- fisher.test(contingency_table)
     
-    # Almacenar los resultados en el dataframe
+# Almacenar los resultados en el dataframe
+    
     fisher_results <- rbind(fisher_results, data.frame(Variable = var, p_value = test_result$p.value))
   } 
 }
 
 # Agregar la significancia en función del valor p
+
 fisher_results <- fisher_results %>%
   mutate(Significance = case_when(
     p_value < 0.001 ~ "***",
@@ -167,6 +179,7 @@ fisher_results <- fisher_results %>%
   ))
 
 # Formatear y mostrar los resultados como tabla
+
 fisher_results %>%
   mutate(p_value = formatC(p_value, format = "f", digits = 4)) %>%
   kable("html", col.names = c("Variable", "P-value", "Significance"), align = "c") %>%
@@ -186,6 +199,7 @@ fisher_results %>%
 ```{R Var_numericas 1}
 
 # Function to create violin plots with jittered points
+
 create_violin_plot <- function(data, var_num, target_var) {
  
    ggplot(data, aes_string(x = target_var, y = var_num, fill = target_var)) +
@@ -205,6 +219,7 @@ create_violin_plot <- function(data, var_num, target_var) {
 }
 
 # Create list of numeric variables to visualize
+
 var_num1<-c("Number.tubes", "Number.tubes.peromyscus","Number.tubes.insectivore", "Number.tubes.vole", "Number.tubes.raccoon", "Number.tubes.chipmunk", "Woodchuck_VisR", "Deer_VisR","Raccon_VisR", "Cat_VisR","Possum_VisR", "Skunk_VisR", "Squirrel_VisR", "Acres")
 
 for (var in var_num1) {
@@ -1708,28 +1723,37 @@ print(p_values_table)
 
 #Interpretación de resultados:
 
-0.- La presencia de tick está relacionada positivamente con la presencia de animales pero también con la presencia de maleza (weeds) y de peromyscus.
+0.- La presencia de tick está relacionada positivamente con la presencia
+de animales pero también con la presencia de maleza (weeds) y de
+peromyscus.
 
-1.- La presencia de maleza (weeds) es mayor cuanto más hierba haya (grass) y menos cuanto más highcan haya. 
+1.- La presencia de maleza (weeds) es mayor cuanto más hierba haya
+(grass) y menos cuanto más highcan haya.
 
 2.- A más proporción de lowcan menos plantas herbáceas hay.
 
-3.- Cuanta menos hierba (grass), mayor cantidad de plantas ornamentales hay.
+3.- Cuanta menos hierba (grass), mayor cantidad de plantas ornamentales
+hay.
 
-4.- La presencia de cats, raccoons y woodchucks es menor si hay hierba (weeds).
+4.- La presencia de cats, raccoons y woodchucks es menor si hay hierba
+(weeds).
 
-5.- A mayor proporción de suelo limpio (imperv), mayor cantidad de raccoons, woodchuchs y squirrels.
+5.- A mayor proporción de suelo limpio (imperv), mayor cantidad de
+raccoons, woodchuchs y squirrels.
 
-6.- Hay más woodchucks cuanta mayor cantidad de evergreen y suelo limpio haya.
+6.- Hay más woodchucks cuanta mayor cantidad de evergreen y suelo limpio
+haya.
 
-7.- Cuanta más proporción de low can haya menos ardillas hay pero si el suelo está limpio hay más.
+7.- Cuanta más proporción de low can haya menos ardillas hay pero si el
+suelo está limpio hay más.
 
-```{R mathematical_model}
+```{R I}
 
-fitglm.null <- glm(Ticks_label ~ 1, family = binomial(logit), data = datos)
+library(MASS)
+fitglm.null <- glm.nb(I~1, data = datos, link = log)
 summary(fitglm.null)
-fitglm <- glm(Ticks_label ~ Raccon_VisR + Deer_VisR + Woodchuck_VisR + 
-         Cat_VisR + Possum_VisR + Skunk_VisR + Squirrel_VisR + Number.tubes.peromyscus + ApproxMweeds + Number.tubes.raccoon + prop.imperv, family = binomial(logit), data = datos)
+fitglm <- glm.nb(I ~ Raccon_VisR + Deer_VisR + Woodchuck_VisR + 
+         Cat_VisR + Possum_VisR + Skunk_VisR + Squirrel_VisR + Number.tubes.peromyscus + ApproxMweeds + Number.tubes.raccoon + prop.imperv, data = datos, link=log)
 
 summary(fitglm)
 
@@ -1740,14 +1764,59 @@ print(table.coef, digits = 4)
 write.table(table.coef, "clipboard", sep="\t")
 pR2 <- 1- fitglm$deviance / fitglm$null.deviance
 pR2  
+```
 
+Analizando Ixodes hay una relación positiva con los tubos de los
+mapaches
+
+```{R H}
+fitglm.null <- glm.nb(H~1, data = datos, link = log)
+summary(fitglm.null)
+fitglm <- glm.nb(H ~ Raccon_VisR + Deer_VisR + Woodchuck_VisR + 
+         Cat_VisR + Possum_VisR + Skunk_VisR + Squirrel_VisR + Number.tubes.peromyscus + ApproxMweeds + Number.tubes.raccoon + prop.imperv, data = datos, link=log)
+
+summary(fitglm)
+
+ci<-confint(fitglm)
+pval<-as.numeric(format(round((coef(summary(fitglm))[,'Pr(>|z|)']),2), scientific = FALSE))
+table.coef <- cbind(exp(cbind(OR=coef(fitglm),ci)), pval)
+print(table.coef, digits = 4)
+write.table(table.coef, "clipboard", sep="\t")
+pR2 <- 1- fitglm$deviance / fitglm$null.deviance
+pR2  
+```
+
+En cuanto a las garrapatas Haemophilus solo es significativo los tubos
+de los mapaches
+
+```{R A}
+fitglm.null <- glm.nb(A~1, data = datos, link = log)
+summary(fitglm.null)
+fitglm <- glm(A ~ Raccon_VisR + Deer_VisR + Woodchuck_VisR + 
+         Cat_VisR + Possum_VisR + Skunk_VisR + Squirrel_VisR + Number.tubes.peromyscus + ApproxMweeds + Number.tubes.raccoon + prop.imperv, data = datos, link=log)
+
+summary(fitglm)
+
+ci<-confint(fitglm)
+pval<-as.numeric(format(round((coef(summary(fitglm))[,'Pr(>|z|)']),2), scientific = FALSE))
+table.coef <- cbind(exp(cbind(OR=coef(fitglm),ci)), pval)
+print(table.coef, digits = 4)
+write.table(table.coef, "clipboard", sep="\t")
+pR2 <- 1- fitglm$deviance / fitglm$null.deviance
+pR2  
+```
+
+En cuanto a las garrapatas A el significativo es los tubos de los
+mapaches
+
+```{R Gausiana}
 #Ahora las distribuciones gausianas:
 ##Cat
 
-fitglm.null <- glm(Cat_VisR ~ 1, family = gaussian, data = datos)
+fitglm.null <- glm.nb(Cat_VisR ~ 1, data = datos, link=log)
 summary(fitglm.null)
-fitglm <- glm(Cat_VisR ~ Log.brush + Vegetable + ApproxMweeds, 
-         family = binomial(logit), data = datos)
+fitglm <- glm.nb(Cat_VisR ~ Log.brush + Vegetable + ApproxMweeds, 
+         data = datos, link=log)
 
 summary(fitglm)
 ci<-confint(fitglm)
@@ -1759,10 +1828,10 @@ pR2 <- 1- fitglm$deviance / fitglm$null.deviance
 pR2 
 
 ##Raccoon
-fitglm.null <- glm(Raccon_VisR ~ 1, family = gaussian, data = datos)
+fitglm.null <- glm.nb(Raccon_VisR ~ 1, data = datos, link=log)
 summary(fitglm.null)
-fitglm <- glm(Raccon_VisR ~ prop.imperv + Lawn + ApproxMweeds + Log.brush, 
-         family = binomial(logit), data = datos)
+fitglm <- glm.nb(Raccon_VisR ~ prop.imperv + Lawn + ApproxMweeds + Log.brush, 
+         data = datos, link=log)
 
 summary(fitglm)
 ci<-confint(fitglm)
@@ -1775,10 +1844,9 @@ pR2
 
 ##Deer
 
-fitglm.null <- glm(Deer_VisR ~ 1, family = gaussian, data = datos)
+fitglm.null <- glm.nb(Deer_VisR ~ 1, data = datos, link=log)
 summary(fitglm.null)
-fitglm <- glm(Deer_VisR ~ Log.brush + Lawn, 
-         family = binomial(logit), data = datos)
+fitglm <- glm.nb(Deer_VisR ~ Log.brush + Lawn, data = datos, link=log)
 
 summary(fitglm)
 ci<-confint(fitglm)
@@ -1790,10 +1858,10 @@ pR2 <- 1- fitglm$deviance / fitglm$null.deviance
 pR2 
 
 ##Woodchuck
-fitglm.null <- glm(Woodchuck_VisR ~ 1, family = gaussian, data = datos)
+fitglm.null <- glm.nb(Woodchuck_VisR ~ 1, data = datos, link=log)
 summary(fitglm.null)
-fitglm <- glm(Woodchuck_VisR ~ ApproxMevergreen + prop.imperv + ApproxMweeds, 
-         family = binomial(logit), data = datos)
+fitglm <- glm.nb(Woodchuck_VisR ~ ApproxMevergreen + prop.imperv + ApproxMweeds, 
+         data = datos, link=log)
 
 summary(fitglm)
 ci<-confint(fitglm)
@@ -1805,10 +1873,10 @@ pR2 <- 1- fitglm$deviance / fitglm$null.deviance
 pR2 
 
 ##Squirrel
-fitglm.null <- glm(Squirrel_VisR ~ 1, family = gaussian, data = datos)
+fitglm.null <- glm.nb(Squirrel_VisR ~ 1, data = datos, link=log)
 summary(fitglm.null)
-fitglm <- glm(Squirrel_VisR ~ Log.brush + Lawn + prop.imperv + prop.lowcan, 
-         family = binomial(logit), data = datos)
+fitglm <- glm.nb(Squirrel_VisR ~ Log.brush + Lawn + prop.imperv + prop.lowcan, 
+         data = datos, link=log)
 
 summary(fitglm)
 ci<-confint(fitglm)
